@@ -337,11 +337,13 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                     setCanvasY(positionY)
                     setScale(scale)
                 }}
+                
             >
-                <div className="absolute bottom-1 left-1/2 rounded-full p-1 z-10 bg-white text-black">
+                {/* This is for pointer position debug, uncomment by need */}
+                {/* <div className="absolute bottom-1 left-1/2 rounded-full p-1 z-10 bg-white text-black">
                     <h1>{(pointerPos.x.toFixed(2))}, {pointerPos.y.toFixed(2)}</h1>
                     <h1>{height}x{width}</h1>
-                </div>
+                </div> */}
                 <TransformComponent
                     wrapperStyle={{
                         overflow: "visible",
@@ -371,9 +373,6 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                         box={bboxCreating}
                         {...bboxCreating}
                         scale={scale}
-                        // locked
-                        // handleChange={() => {}}
-                        // pointer={pointerPos}
                     />}
 
                     { currAnno.boxes.map((box, index) => (
