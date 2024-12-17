@@ -37,7 +37,11 @@ export default function DetectPane(props: DetectPaneProps) {
     }, [defaultAgree, onDetect, threshold])
 
     return (
-    <div className="h-full flex flex-col justify-start items-center bg-zinc-100 overflow-y-scroll p-1" style={{width: elemWidth}}>
+    <div 
+        className="h-full flex flex-col justify-start items-center 
+        bg-zinc-100 overflow-hidden p-1" 
+        style={{width: elemWidth}}
+    >
         <h1 className="text-sm font-extralight w-full pl-2 mb-2 text-white bg-amber-500">DETECT</h1>
         <div className="h-full w-full flex flex-col justify-center items-center">
             <div className="

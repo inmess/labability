@@ -1,5 +1,6 @@
 import { FileEntry, ImageBoundingBox } from "@/types/basetype"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { BsTrash } from "react-icons/bs"
 import { useEventListener } from "usehooks-ts"
 
 type FileExplorerProps = {
@@ -35,23 +36,21 @@ export default function FileExplorer(props: FileExplorerProps) {
         style={{ width: elemWidth }}
     >
         <h1 className="text-sm font-extralight w-full pl-2 mb-2 text-white bg-amber-500">EXPLORER</h1>
-        <div className="overflow-y-scroll flex-1">       
+        <div className="overflow-y-scroll overflow-hidden w-full flex-1">       
             {files.map((file) => {
                 const isSelected = selected?.name === file.name
                 return(
-                <div key={file.name} className="flex flex-row justify-start" style={{width: elemWidth - 4}}>
+                <div key={file.name} className="flex flex-row justify-start w-full overflow-hidden">
                     <button 
                         onClick={() => onChangeSelection(file)}
-                        style={{width: elemWidth - 4 - 4}}
                         className={
                             `overflow-hidden h-6 flex flex-row justify-start items-center 
                             ${isSelected && 'text-amber-500'} text-xs
-                            px-2 hover:bg-zinc-200 truncate`
+                            px-2 hover:bg-zinc-200 truncate w-full`
                         }
                     >
                         <p
                             className="truncate text-left" 
-                            style={{width: elemWidth - 4 - 16}}
                         >{file.name}</p>
                     </button>
                 </div>
@@ -73,9 +72,10 @@ export default function FileExplorer(props: FileExplorerProps) {
             </h1>
         </div>
         <div 
-            className="w-full flex flex-col overflow-y-scroll transition-all"
+            className="w-full flex flex-col overflow-hidden transition-all"
             style={{height: boxListHeight}}
         >
+            <div className="flex flex-col overflow-y-scroll overflow-hidden w-full ">
             {
                 boxes?.map((box, index) => 
                     <BoxEntry
@@ -91,6 +91,7 @@ export default function FileExplorer(props: FileExplorerProps) {
                     />
                 )
             }
+            </div>
         </div>
     </div>
     )
@@ -110,6 +111,8 @@ const BoxEntry = ({
     editing?: boolean 
 }) => {
 
+    const inputRef = useRef<HTMLInputElement>(null)
+
     const [ value, setValue] = useState(box.label ?? '')
 
     useEventListener('keypress', e => {
@@ -123,24 +126,42 @@ const BoxEntry = ({
     }, [editing])
 
     return (
-        <div className="flex flex-row justify-start items-center">
+        <div 
+            className="flex flex-row justify-start items-center text-xs
+                         w-full"
+        >
             { !editing &&
+                <>
                 <button 
-                    onClick={() => onBoxClick(box)} 
-                    onDoubleClick={() => onBoxDoubleClick(box)}
+                    className="flex flex-1 flex-row justify-between items-center 
+                    h-full hover:bg-zinc-200 overflow-hidden pl-2  py-1"
+                    onClick={() => !editing && onBoxClick(box)}
+                    onDoubleClick={() => {
+                        if(editing) return null
+                        onBoxDoubleClick(box)
+                        inputRef.current?.focus()
+                    }}
                 >
-                    <h1>{box.label || `box_${box.boxId}`}</h1>
+                    <h1 className="w-full text-left truncate">{box.label || `box_${box.boxId}`}</h1>
                 </button>
+                </>
             }
             { editing &&
             <>
                 <form onSubmit={() => onSave && onSave(value)}>
                     <input 
+                        ref={inputRef}
+                        className="w-full bg-transparent focus:ring-0 focus:outline-none border-b
+                        border-amber-500 py-1 pl-2"
                         value={value}
                         onChange={e => setValue(e.target.value)}
                     />
+
+                    
                 </form>
-                
+                <button className="w-8 flex justify-center items-center hover:bg-zinc-200 h-full">
+                    <BsTrash size={16} />
+                </button>
             </>
             }
         </div>
