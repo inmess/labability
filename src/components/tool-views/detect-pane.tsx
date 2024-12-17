@@ -28,7 +28,10 @@ export default function DetectPane(props: DetectPaneProps) {
 
     const onDetectClick = useCallback(async () => {
         if(defaultAgree) return onDetect(threshold)
-        const agree = confirm('Are you sure to detect? It may takes a while.', { title: 'Confirm Detection' })
+        const agree = await confirm(
+            'Are you sure to detect? It may takes a while.', 
+            { title: 'Confirm Detection' }
+        )
         if(!agree) return;
         onDetect(threshold)
     }, [defaultAgree, onDetect, threshold])

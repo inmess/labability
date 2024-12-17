@@ -3,15 +3,18 @@
 
 use ort::execution_providers::{
     CUDAExecutionProvider,
-    CoreMLExecutionProvider,
     ROCmExecutionProvider
 };
 
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+use ort::execution_providers::CoreMLExecutionProvider;
 
 fn main() {
+    tracing_subscriber::fmt::init();
     let _ = ort::init()
         .with_execution_providers([
             CUDAExecutionProvider::default().build(),
+            #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
             CoreMLExecutionProvider::default().build(),
             ROCmExecutionProvider::default().build()
         ])

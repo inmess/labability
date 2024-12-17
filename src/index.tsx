@@ -145,9 +145,9 @@ export default function App() {
 			imagePath: selectedFile?.path
 		})
 
-		const currentMaxId = annotations[selectedFile.name].boxes.reduce((acc, box) => box.boxId > acc ? box.boxId : acc, 0)
+		const currentMaxId = boxes.reduce((acc, box) => box.boxId > acc ? box.boxId : acc, 0)
 
-		const boxes = res.filter(detection => {
+		const new_boxes = res.filter(detection => {
 			return detection.prob > threshold
 		}).map((detection, idx) => ({
 			top: detection.bbox.y1,
@@ -163,14 +163,14 @@ export default function App() {
 			[selectedFile.name]: {
 				...annotations[selectedFile.name],
 				boxes: [
-					...annotations[selectedFile.name].boxes,
-					...boxes
+					...boxes,
+					...new_boxes
 				]
 			}
 		})
 		console.log(res);
 		setDetecting(() => false)
-	}, [selectedFile, config])
+	}, [selectedFile, config, boxes])
 
 	useEventListener('mousemove', e => {
 		if (!draggingToolBar) return
