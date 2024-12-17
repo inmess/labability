@@ -63,7 +63,8 @@ export default function App() {
 		selectedFile,
 		setSelectedFile,
 		nextFile,
-		prevFile
+		prevFile,
+		closeImgDir
 	} = useImgDir()
 
 	const {
@@ -309,6 +310,18 @@ export default function App() {
 		<SideBar
 			actions={siderActions}
 			indicators={[
+				{
+					element: () => dir ? (
+						<div 
+							className="flex flex-col justify-center items-center
+							hover:bg-gray-200 hover:cursor-pointer w-full py-2"
+							onClick={closeImgDir}
+						>
+							<h1 className="font-normal text-xs">Close</h1>
+							<h1 className="font-normal text-xs">Folder</h1>
+						</div>
+					): <></>
+				},
 				{
 					element: () => (
 						<div className="flex flex-col">

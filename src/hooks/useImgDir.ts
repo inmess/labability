@@ -57,6 +57,12 @@ export default function useImgDir() {
         setDir(directory)
     }
 
+    const closeImgDir = () => {
+        setDir(null)
+        setFiles([])
+        setSelectedFile(null)
+    }
+
     useEffect(() => {
         async function fetchFiles() {
             if(!dir) return
@@ -86,6 +92,7 @@ export default function useImgDir() {
         selectedFile,
         setSelectedFile,
         nextFile,
-        prevFile
+        prevFile,
+        closeImgDir
     }
 }

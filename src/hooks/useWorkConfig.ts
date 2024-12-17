@@ -51,9 +51,9 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 	useEffect(() => {
 		loadConfig(workspacePath)
 			.then(config => {
-				if(!config) return
+				// if(!config) return
 				setConfig(config)
-				setAnnotations(config.annotations)
+				setAnnotations(config?.annotations ?? {})
 			})
 			.catch(console.log)
 	}, [workspacePath])
