@@ -1,4 +1,4 @@
-import { WorkspaceConfig } from "@/hooks/useWorkConfig"
+import { LabelColor, WorkspaceConfig } from "@/hooks/useWorkConfig"
 import Input from "@/components/common/input"
 
 type ConfigPaneProps = {
@@ -22,6 +22,7 @@ const LabelFieldsConfig = (props: {
         onChangeLabelName, 
         onChangeLabelFields
     } = props
+
 
 
     return (
@@ -80,6 +81,30 @@ export default function ConfigPane(props: ConfigPaneProps) {
                 <h1 className="text-lg font-extralight">Configuration</h1>
             </div>
             <div className="p-2 flex flex-col gap-2">
+                <div className="flex flex-row justify-start items-center border-b border-zinc-300 py-2">
+                    <h1 className="mr-1 font-extralight">Box color</h1>
+                    {Object.keys(LabelColor).map((color, idx) => (
+                        <button 
+                            key={idx}
+                            className={`
+                                rounded-full w-4 h-4 border border-gray-500 mx-1
+                                ${
+                                    config.boxOptions.color === LabelColor[color as keyof typeof LabelColor] 
+                                    && ' outline outline-1 outline-blue-600'
+                                }
+                            `}
+                            style={{backgroundColor: LabelColor[color as keyof typeof LabelColor]}}
+                            onClick={() => {
+                                setConfig({
+                                    ...config,
+                                    boxOptions: {
+                                        color: LabelColor[color as keyof typeof LabelColor]
+                                    }
+                                })
+                            }}
+                        />
+                    ))}
+                </div>
                 <div className="flex flex-col justify-between items-center">
                     <h1>
                         {

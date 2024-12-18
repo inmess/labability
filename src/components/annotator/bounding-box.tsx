@@ -1,3 +1,4 @@
+import { LabelColor, LabelTextColor } from "@/hooks/useWorkConfig";
 import { BBoxMovePoint, ImageBoundingBox } from "@/types/basetype";
 
 const CORNER_SIZE = 6
@@ -6,12 +7,12 @@ const BoxEdge = ({
     onSelected,
     length,
     position,
-    locked
+    locked,
 }: {
     onSelected: () => void,
     length: number,
     position: BBoxMovePoint.BOT | BBoxMovePoint.TOP | BBoxMovePoint.LEFT | BBoxMovePoint.RIGHT,
-    locked?: boolean
+    locked?: boolean,
 }) => {
 
     const styles = {
@@ -126,6 +127,9 @@ interface BoundingBoxProps {
     scale?: number
     id: string
     locked?: boolean
+    boxOptions?: {
+        color: LabelColor
+    }
 }
 
 
@@ -135,7 +139,10 @@ export default function BoundingBox(props: BoundingBoxProps) {
         onSelectMovePoint,
         id,
         scale = 1,
-        locked = false
+        locked = false,
+        boxOptions = {
+            color: LabelColor.AMBER
+        }
     } = props
 
     let labelHeight = 40 / scale
@@ -146,26 +153,28 @@ export default function BoundingBox(props: BoundingBoxProps) {
 
     return (
         <div 
-            className="absolute border-amber-500"
+            className="absolute"
             style={{
                 top: box.top,
                 left: box.left,
                 width: box.width,
                 height: box.height,
-                borderWidth: 1
+                borderWidth: 1,
+                borderColor: boxOptions.color,
             }}
             id={id}
         >
             {box.label && <div
-                className="absolute bg-amber-500 rounded-b-lg flex justify-center items-center px-2"
+                className="absolute rounded-b-lg flex justify-center items-center px-2"
                 style={{
                     bottom: -labelHeight,
                     height: labelHeight,
                     fontSize: labelHeight - 10,
                     right: -1,
+                    backgroundColor: boxOptions.color,
                 }}
             >
-                <h1 className="font-semibold">{box.label}</h1>
+                <h1 className="font-semibold" style={{color: LabelTextColor[boxOptions.color]}}>{box.label}</h1>
             </div>}
             <div 
                 className={`

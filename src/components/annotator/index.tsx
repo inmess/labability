@@ -15,6 +15,7 @@ import { useImageSize } from "react-image-size"
 import { ReactZoomPanPinchRef, TransformComponent, TransformWrapper } from "react-zoom-pan-pinch"
 import BoundingBox from "./bounding-box"
 import { useEventListener } from "usehooks-ts"
+import { LabelColor } from "@/hooks/useWorkConfig"
 
 export type AnnotatorRef = {
     resizeContent: () => void
@@ -30,6 +31,9 @@ type AnnotatorProps = {
         width: number
         height: number
     }
+    boxOptions?: {
+        color: LabelColor
+    }
 }
 
 export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
@@ -37,7 +41,8 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
     const { 
         image, 
         containerRef,
-        mode
+        mode,
+        boxOptions
     } = props
 
     const [ dimensions ] = useImageSize(image.src)
@@ -373,6 +378,7 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                         box={bboxCreating}
                         {...bboxCreating}
                         scale={scale}
+                        boxOptions={boxOptions}
                     />}
 
                     { currAnno.boxes.map((box, index) => (
@@ -391,6 +397,7 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                                 })
                             }}
                             locked={mode !== 'adjust'}
+                            boxOptions={boxOptions}
                         />
                     ))}
                     <img 

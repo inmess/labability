@@ -380,6 +380,7 @@ export default function App() {
 					imageInfo={{
 						width, height
 					}}
+					boxOptions={config?.boxOptions}
 				/>
 			}
 		</div>

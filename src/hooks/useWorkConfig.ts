@@ -8,6 +8,16 @@ import { open } from "@tauri-apps/plugin-dialog";
 
 const CONFIG_FILE = "labability.workspace"
 
+export enum LabelColor {
+	AMBER = 'rgba(245, 158, 12, 1)',
+	RED = 'rgba(255, 0, 0, 1)',
+}
+
+export const LabelTextColor = {
+	[LabelColor.AMBER]: 'black',
+	[LabelColor.RED]: 'white'
+}
+
 export type WorkspaceConfig = {
 	imageLabelOptions: {
 		labelTitle: string,
@@ -17,6 +27,9 @@ export type WorkspaceConfig = {
 		probThreshold: number,
 		defaultAgree: boolean,
 		loadedModel: string | null,
+	},
+	boxOptions: {
+		color: LabelColor,
 	}
 }
 
@@ -49,6 +62,9 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 				},
 				imageLabelOptions: [],
 				annotations: {},
+				boxOptions: {
+					color: LabelColor.AMBER
+				}
 			} satisfies WorkspaceReservedContent
 		// }
 		const content = await readTextFile(configPath)
@@ -83,6 +99,9 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 				loadedModel: path,
 				probThreshold: prev?.detection.probThreshold || 0.7,
 				defaultAgree: prev?.detection.defaultAgree || false
+			},
+			boxOptions: {
+				color: prev?.boxOptions.color || LabelColor.AMBER
 			}
 		}))
 	}, [config, setConfig])
@@ -107,6 +126,9 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 				defaultAgree: defaultAgree === undefined
 					? prev?.detection.defaultAgree ?? false
 					: defaultAgree
+			},
+			boxOptions: {
+				color: prev?.boxOptions.color || LabelColor.AMBER
 			}
 		}))
 	}, [setConfig])
