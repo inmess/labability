@@ -61,20 +61,19 @@ pub fn inference_yolov8(model: String, image_path: String) -> Result<Vec<Detecti
         return Err("Invalid input w&h".to_string())
     }
 
-    println!("Batch size: {}", input_dims[0]);
-    println!("Number of channel: {}", input_dims[1]);
-    println!("input width: {}", input_dims[2]);
-    println!("input height: {}", input_dims[3]);
-
+    if cfg!(debug_assertions) {
+        println!("Batch size: {}", input_dims[0]);
+        println!("Number of channel: {}", input_dims[1]);
+        println!("input width: {}", input_dims[2]);
+        println!("input height: {}", input_dims[3]);
+    }
     let img = image::open(image_path).expect("Failed to open image");
     let mut boxes: Vec<Detection> = Vec::new();
 
-    let image_width = img.width();
-    let image_height = img.height();
     let area_width = input_dims[2] as u32;
     let distance = area_width - PADDING;
-    let x_num = (image_width / distance) + 1;
-    let y_num = (image_height / distance) + 1;
+    let x_num = (img.width() / distance) + 1;
+    let y_num = (img.height() / distance) + 1;
     println!("x_num: {}, y_num: {}, distance: {}", x_num, y_num, distance);
 
 
@@ -115,10 +114,10 @@ pub fn inference_yolov8(model: String, image_path: String) -> Result<Vec<Detecti
                     continue;
                 }
                 // println!("===> Detected raw: {} {} {} {}", row[0], row[1], row[2], row[3]);
-                let xc = row[0] * (area_width as f32);
-                let yc = row[1] * (area_width as f32);
-                let w = row[2] * (area_width as f32);
-                let h = row[3] * (area_width as f32);
+                let xc = row[0];
+                let yc = row[1];
+                let w = row[2];
+                let h = row[3];
                 println!("======> Detected: {} {} {} {} with probability: {}", xc, yc, w, h, prob);
                 boxes.push(Detection {
                     bbox: BoundingBox {

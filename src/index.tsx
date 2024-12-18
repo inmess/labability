@@ -71,7 +71,8 @@ export default function App() {
 		config,
 		saveWorkspace,
 		setConfig,
-		setModel
+		setModel,
+		configDetection
 	} = useWorkConfig({
 		workspacePath: dir
 	})
@@ -126,7 +127,7 @@ export default function App() {
 
 		if (!config) return console.log('no config')
 
-		if (!config.loadedModel) return console.log('no model file found')
+		if (!config.detection) return console.log('no model file found')
 		
 		if (!selectedFile) return console.log('no selected file')
 
@@ -142,7 +143,7 @@ export default function App() {
 			class: number,
 			prob: number
 		}[] = await invoke('inference_yolov8', {
-			model: config?.loadedModel,
+			model: config?.detection.loadedModel,
 			imagePath: selectedFile?.path
 		})
 
@@ -247,7 +248,8 @@ export default function App() {
 		'detect': () => (
 			<DetectPane
 				elemWidth={toolBarWidth}
-				loadedModel={config?.loadedModel || 'undefined'}
+				detectionConfig={config?.detection}
+				configDetection={configDetection}
 				onDetect={inference}
 				onSetLoadedModel={setModel}
 			/>
@@ -274,12 +276,12 @@ export default function App() {
 		},
 		{
 			onPressAction: () => onToolBarAction('config'),
-			isActive: false,
+			isActive: activated === 'config',
 			icon: () => <GoGear size={24} />
 		},
 		{
 			onPressAction: () => onToolBarAction('detect'),
-			isActive: false,
+			isActive: activated === 'detect',
 			icon: () => <AiOutlineAim size={24} />
 		},
 		{

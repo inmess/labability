@@ -9,11 +9,15 @@ import { open } from "@tauri-apps/plugin-dialog";
 const CONFIG_FILE = "labability.workspace"
 
 export type WorkspaceConfig = {
-	loadedModel: string | null,
 	imageLabelOptions: {
 		labelTitle: string,
 		labelOptions: string[]
-	}[]
+	}[],
+	detection: {
+		probThreshold: number,
+		defaultAgree: boolean,
+		loadedModel: string | null,
+	}
 }
 
 type WorkspaceReservedContent = {
@@ -38,9 +42,13 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		const isExist = await exists(configPath)
 		// } catch (error) {
 		if (!isExist) return {
-				loadedModel: null,
+				detection: {
+					loadedModel: null,
+					probThreshold: 0.7,
+					defaultAgree: false
+				},
 				imageLabelOptions: [],
-				annotations: {}
+				annotations: {},
 			} satisfies WorkspaceReservedContent
 		// }
 		const content = await readTextFile(configPath)
@@ -70,11 +78,38 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		if(path === null) return
 		setConfig(prev => ({
 			...prev,
-			loadedModel: path,
-			imageLabelOptions: prev?.imageLabelOptions || []
+			imageLabelOptions: prev?.imageLabelOptions || [],
+			detection: {
+				loadedModel: path,
+				probThreshold: prev?.detection.probThreshold || 0.7,
+				defaultAgree: prev?.detection.defaultAgree || false
+			}
 		}))
-
 	}, [config, setConfig])
+
+	const configDetection = useCallback(async ({
+		probThreshold,
+		defaultAgree,
+		loadedModel
+	}: {
+		probThreshold?: number,
+		defaultAgree?: boolean,
+		loadedModel?: string
+	}) => {
+		setConfig(prev => ({
+			...prev,
+			imageLabelOptions: prev?.imageLabelOptions || [],
+			detection: {
+				loadedModel : loadedModel || prev?.detection.loadedModel || null,
+				probThreshold: probThreshold === undefined 
+					? prev?.detection.probThreshold ?? 0.7 
+					: probThreshold,
+				defaultAgree: defaultAgree === undefined
+					? prev?.detection.defaultAgree ?? false
+					: defaultAgree
+			}
+		}))
+	}, [setConfig])
 
 	const saveWorkspace = useCallback(async () => {
 		if(!workspacePath) return
@@ -88,5 +123,11 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		await writeTextFile(configPath, JSON.stringify(content))
 	}, [workspacePath, annotations])
 
-	return { saveWorkspace, config, setConfig, setModel }
+	return { 
+		saveWorkspace, 
+		config, 
+		setConfig, 
+		setModel,
+		configDetection
+	}
 }

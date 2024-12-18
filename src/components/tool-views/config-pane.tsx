@@ -81,7 +81,12 @@ export default function ConfigPane(props: ConfigPaneProps) {
             </div>
             <div className="p-2 flex flex-col gap-2">
                 <div className="flex flex-col justify-between items-center">
-                    <h1>{config.loadedModel?.split('/')?.pop()?.split('\\').pop() ?? 'No Model Loaded'}</h1>
+                    <h1>
+                        {
+                        config.detection.loadedModel?.split('/')?.pop()?.split('\\').pop() 
+                            ?? 'No Model Loaded'
+                        }
+                    </h1>
                     <button
                         className="border-amber-500 text-amber-500 
                         border-2 active:border-amber-400 active:text-amber-400
