@@ -174,6 +174,18 @@ export default function App() {
 		setDetecting(() => false)
 	}, [selectedFile, config, boxes])
 
+	const onDeleteBox = useCallback((boxId: number) => {
+		if(!selectedFile) return
+		const next = boxes.filter(b => b.boxId !== boxId)
+		setAnnotations({
+			...annotations,
+			[selectedFile.name]: {
+				...annotations[selectedFile.name],
+				boxes: next,
+			}
+		})
+	}, [selectedFile, boxes])
+
 	useEventListener('mousemove', e => {
 		if (!draggingToolBar) return
 		// plus 1 to keep hover effect
@@ -228,6 +240,7 @@ export default function App() {
 						}
 					})
 				}}
+				onBoxDelete={onDeleteBox}
 			/>
 		),
 		'image-info': () => (

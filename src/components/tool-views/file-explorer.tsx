@@ -22,7 +22,7 @@ export default function FileExplorer(props: FileExplorerProps) {
         elemWidth,
         boxes,
         onBoxClick,
-        // onBoxDelete,
+        onBoxDelete,
         onBoxLabelEdit,
     } = props
 
@@ -88,6 +88,7 @@ export default function FileExplorer(props: FileExplorerProps) {
                             setEditingBoxId(null)
                         }}
                         onBoxDoubleClick={box => setEditingBoxId(box.boxId)}
+                        onDeleteBox={onBoxDelete}
                     />
                 )
             }
@@ -102,6 +103,7 @@ const BoxEntry = ({
     onBoxClick,
     onBoxDoubleClick,
     editing,
+    onDeleteBox,
     onSave
 }: {
     box: ImageBoundingBox
@@ -109,6 +111,7 @@ const BoxEntry = ({
     onBoxDoubleClick: (box: ImageBoundingBox) => void
     onSave?: (value: string) => void
     editing?: boolean 
+    onDeleteBox?: (boxId: number) => void
 }) => {
 
     const inputRef = useRef<HTMLInputElement>(null)
@@ -159,7 +162,10 @@ const BoxEntry = ({
 
                     
                 </form>
-                <button className="w-8 flex justify-center items-center hover:bg-zinc-200 h-full">
+                <button 
+                    className="w-8 flex justify-center items-center hover:bg-zinc-200 h-full"
+                    onClick={() => onDeleteBox && onDeleteBox(box.boxId)}
+                >
                     <BsTrash size={16} />
                 </button>
             </>
