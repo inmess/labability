@@ -137,7 +137,7 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		}, prevConfig, config, { annotations }) satisfies WorkspaceReservedContent
 		const configPath = await join(workspacePath, CONFIG_FILE)
 		await writeTextFile(configPath, JSON.stringify(content))
-	}, [workspacePath, annotations])
+	}, [workspacePath, annotations, config])
 
 	return { 
 		saveWorkspace, 
