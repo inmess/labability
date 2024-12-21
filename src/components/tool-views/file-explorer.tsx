@@ -1,4 +1,6 @@
 import { FileEntry, ImageBoundingBox } from "@/types/basetype"
+import { annotationAtom } from "@/utils/atoms"
+import { useAtom } from "jotai"
 import { useEffect, useRef, useState } from "react"
 import { BsTrash } from "react-icons/bs"
 import { useEventListener } from "usehooks-ts"
@@ -26,6 +28,8 @@ export default function FileExplorer(props: FileExplorerProps) {
         onBoxLabelEdit,
     } = props
 
+    const [ annotations ] = useAtom(annotationAtom)
+
     const [ boxListHeight, setBoxListHeight ] = useState(200)
 
     const [ editingBoxId, setEditingBoxId ] = useState<number | null>(null)
@@ -49,6 +53,16 @@ export default function FileExplorer(props: FileExplorerProps) {
                             px-2 hover:bg-zinc-200 truncate w-full`
                         }
                     >
+                        <div
+                            className={`rounded-full border ${
+                                annotations[file.name] 
+                                    ? annotations[file.name].boxes.length > 0 
+                                        ? 'bg-green-500' 
+                                        : 'bg-amber-500' 
+                                    : 'bg-transparent'
+                                } w-2 h-2 mr-1 -ml-1
+                            `} 
+                        />
                         <p
                             className="truncate text-left" 
                         >{file.name}</p>
@@ -88,7 +102,10 @@ export default function FileExplorer(props: FileExplorerProps) {
                             setEditingBoxId(null)
                         }}
                         onBoxDoubleClick={box => setEditingBoxId(box.boxId)}
-                        onDeleteBox={onBoxDelete}
+                        onDeleteBox={(boxId) => {
+                            onBoxDelete && onBoxDelete(boxId)
+                            setEditingBoxId(null)
+                        }}
                     />
                 )
             }
@@ -104,7 +121,7 @@ const BoxEntry = ({
     onBoxDoubleClick,
     editing,
     onDeleteBox,
-    onSave
+    onSave,
 }: {
     box: ImageBoundingBox
     onBoxClick: (box: ImageBoundingBox) => void
@@ -112,6 +129,7 @@ const BoxEntry = ({
     onSave?: (value: string) => void
     editing?: boolean 
     onDeleteBox?: (boxId: number) => void
+    
 }) => {
 
     const inputRef = useRef<HTMLInputElement>(null)

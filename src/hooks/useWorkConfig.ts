@@ -37,6 +37,19 @@ type WorkspaceReservedContent = {
 	annotations: { [key: string]: ImageAnnotation }	
 } & WorkspaceConfig
 
+const defaultConfig: WorkspaceReservedContent = {
+	imageLabelOptions: [],
+	detection: {
+		probThreshold: 0.7,
+		defaultAgree: false,
+		loadedModel: null
+	},
+	boxOptions: {
+		color: LabelColor.AMBER
+	},
+	annotations: {}
+}
+
 type WorkConfigOptions = {
 	workspacePath: string | null
 }
@@ -51,22 +64,13 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 	const loadConfig = async (path: string | null): Promise<WorkspaceReservedContent | null> => {
 		if(!path) return null
 		const configPath = await join(path, CONFIG_FILE)
-		// try {
+
 		const isExist = await exists(configPath)
-		// } catch (error) {
+
 		if (!isExist) return {
-				detection: {
-					loadedModel: null,
-					probThreshold: 0.7,
-					defaultAgree: false
-				},
-				imageLabelOptions: [],
-				annotations: {},
-				boxOptions: {
-					color: LabelColor.AMBER
-				}
-			} satisfies WorkspaceReservedContent
-		// }
+			...defaultConfig
+		} satisfies WorkspaceReservedContent
+
 		const content = await readTextFile(configPath)
 		const config = JSON.parse(content) as WorkspaceReservedContent
 		return config
@@ -75,7 +79,6 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 	useEffect(() => {
 		loadConfig(workspacePath)
 			.then(config => {
-				// if(!config) return
 				setConfig(config)
 				setAnnotations(config?.annotations ?? {})
 			})
@@ -92,18 +95,13 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 			}]
 		})
 		if(path === null) return
-		setConfig(prev => ({
+		setConfig(prev => prev ? {
 			...prev,
-			imageLabelOptions: prev?.imageLabelOptions || [],
 			detection: {
+				...prev.detection,
 				loadedModel: path,
-				probThreshold: prev?.detection.probThreshold || 0.7,
-				defaultAgree: prev?.detection.defaultAgree || false
 			},
-			boxOptions: {
-				color: prev?.boxOptions.color || LabelColor.AMBER
-			}
-		}))
+		}: null)
 	}, [config, setConfig])
 
 	const configDetection = useCallback(async ({
@@ -115,22 +113,18 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		defaultAgree?: boolean,
 		loadedModel?: string
 	}) => {
-		setConfig(prev => ({
+		setConfig(prev => prev ? ({
 			...prev,
-			imageLabelOptions: prev?.imageLabelOptions || [],
 			detection: {
-				loadedModel : loadedModel || prev?.detection.loadedModel || null,
+				loadedModel : loadedModel || prev.detection.loadedModel,
 				probThreshold: probThreshold === undefined 
-					? prev?.detection.probThreshold ?? 0.7 
+					? prev.detection.probThreshold
 					: probThreshold,
 				defaultAgree: defaultAgree === undefined
-					? prev?.detection.defaultAgree ?? false
+					? prev.detection.defaultAgree
 					: defaultAgree
-			},
-			boxOptions: {
-				color: prev?.boxOptions.color || LabelColor.AMBER
 			}
-		}))
+		}): null)
 	}, [setConfig])
 
 	const saveWorkspace = useCallback(async () => {

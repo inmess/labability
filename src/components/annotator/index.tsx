@@ -241,18 +241,19 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
             return setSelectedBox(null)
         }
         if(mode !== 'adjust' || !creatingBox) return;
-        // console.log('adding box');
+    
+        const maxId = currAnno.boxes.reduce((acc, box) => box.boxId > acc ? box.boxId : acc, 0)
         
         addBox({
             left: Math.min(tempBoxAnchor.x, pointerPos.x),
             top: Math.min(tempBoxAnchor.y, pointerPos.y),
             width: Math.abs(pointerPos.x - tempBoxAnchor.x),
             height: Math.abs(pointerPos.y - tempBoxAnchor.y),
-            boxId: currAnno.boxes.length,
-            label: 'box_' + currAnno.boxes.length
+            boxId: maxId + 1,
+            label: `box_${maxId + 1}` 
         })
         setCreatingBox(false)
-    }, [addBox, creatingBox, pointerPos, tempBoxAnchor, mode])
+    }, [addBox, creatingBox, pointerPos, tempBoxAnchor, mode, currAnno.boxes, selectedBox])
 
     const resizeContent = useCallback(() => {
 

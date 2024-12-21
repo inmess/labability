@@ -13,6 +13,7 @@ import { FileEntry } from "@/types/basetype";
 import { annotationAtom } from "@/utils/atoms";
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { 
 	useCallback, 
@@ -330,7 +331,14 @@ export default function App() {
 						<div 
 							className="flex flex-col justify-center items-center
 							hover:bg-gray-200 hover:cursor-pointer w-full py-2"
-							onClick={closeImgDir}
+							onClick={async () => {
+								const agree = await ask("Are you sure you want to close the current workspace?", {
+									title: 'Close Workspace',
+									kind: 'warning'
+								})
+								if(!agree) return null
+								closeImgDir()
+							}}
 						>
 							<h1 className="font-normal text-xs">Close</h1>
 							<h1 className="font-normal text-xs">Folder</h1>
