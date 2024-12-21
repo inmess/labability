@@ -27,6 +27,7 @@ import { BiSave } from "react-icons/bi";
 import { GoGear, GoInfo } from "react-icons/go";
 import { VscFiles } from "react-icons/vsc";
 import { useImageSize } from "react-image-size";
+import { toast, ToastContainer } from "react-toastify";
 import { useEventListener } from "usehooks-ts";
 
 const TOOLBAR_MAX_WIDTH = 500
@@ -299,7 +300,18 @@ export default function App() {
 			icon: () => <AiOutlineAim size={24} />
 		},
 		{
-			onPressAction: saveWorkspace,
+			onPressAction: async () => {
+				if(!dir) return
+				toast.promise(saveWorkspace, {
+					pending: 'Saving Workspace...',
+					success: 'Workspace Saved',
+					error: 'Failed to Save Workspace',
+				}, {
+					position: 'top-center',
+					autoClose: 2000,
+					hideProgressBar: false
+				})
+			},
 			isActive: false,
 			icon: () => <BiSave size={24} />
 		}
@@ -314,6 +326,7 @@ export default function App() {
 			h-screen w-screen bg-zinc-100 select-none`
 		}
 	>
+		<ToastContainer />
 		{ 
 		detecting 
 		&& <div 
