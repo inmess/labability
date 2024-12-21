@@ -5,6 +5,7 @@ import { join } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
 import { annotationAtom } from "@/utils/atoms";
 import { open } from "@tauri-apps/plugin-dialog";
+import { merge } from "ts-deepmerge";
 
 const CONFIG_FILE = "labability.workspace"
 
@@ -130,11 +131,10 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 	const saveWorkspace = useCallback(async () => {
 		if(!workspacePath) return
 		const prevConfig = await loadConfig(workspacePath)
-		const content = {
-			...prevConfig,
-			...config,
-			annotations
-		}
+		if(!prevConfig || !config) return
+		const content = merge.withOptions({
+			mergeArrays: false
+		}, prevConfig, config, { annotations }) satisfies WorkspaceReservedContent
 		const configPath = await join(workspacePath, CONFIG_FILE)
 		await writeTextFile(configPath, JSON.stringify(content))
 	}, [workspacePath, annotations])
