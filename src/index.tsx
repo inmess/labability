@@ -387,10 +387,15 @@ export default function App() {
 			/>
 			{ !dir && <>
 				<h1>Welcome to Labability v2</h1>
-				<button onClick={async () => {
-					await openImgDir()
-					setActivated('file-explorer')
-				}}>Open Image Directory</button>
+				<button 
+					onClick={async () => {
+						await openImgDir()
+						setActivated('file-explorer')
+					}}
+					className="text-blue-500 font-bold hover:underline"
+				>
+					Open Image Directory
+				</button>
 			</>}
 			{
 				selectedFile && <Annotator

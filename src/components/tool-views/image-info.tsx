@@ -19,10 +19,10 @@ export default function ImageInfo(props: ImageInfoProps) {
 
     if(!file) return (
         <div
-            className="h-full"
+            className="h-full flex flex-col justify-center items-center"
             style={{ width: props.elemWidth }}
         >
-            <h1 className="italic font-extralight" >No Image Selected</h1>
+            <h1 className="italic font-light text-gray-500" >No Image Selected</h1>
         </div>
     )
 
@@ -40,9 +40,11 @@ export default function ImageInfo(props: ImageInfoProps) {
                     hover:text-amber-600 hover:border-amber-600
                     active:text-amber-600 active:border-amber-600"
                     onClick={() => writeText(file.path)}
-                >copy path</button>
-                <p className="text-xs font-light">WxH </p>
-                <p className="text-sm font-light">{meta.width}x{meta.height}</p>
+                >
+                    copy path
+                </button>
+                <p className="text-xs font-light">WxH</p>
+                <p className="text-sm font-semibold">{meta.width}x{meta.height}</p>
                 <div className="flex flex-col justify-start items-start">
                     <h1 className="text-xs font-light">Labels</h1>
                     <div className="flex flex-col justify-start items-start">
