@@ -27,6 +27,7 @@
     "fs:allow-fstat",
     "dialog:default",
     "clipboard-manager:allow-write-text",
-    "clipboard-manager:allow-write-image"
+    "clipboard-manager:allow-write-image",
+    "core:window:allow-set-title"
   ]
 }

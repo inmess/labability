@@ -13,6 +13,7 @@ import { FileEntry } from "@/types/basetype";
 import { annotationAtom } from "@/utils/atoms";
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { 
@@ -74,10 +75,24 @@ export default function App() {
 		saveWorkspace,
 		setConfig,
 		setModel,
-		configDetection
+		configDetection,
+		modified
 	} = useWorkConfig({
 		workspacePath: dir
 	})
+
+	useEffect(() => {
+		const window = getCurrentWindow()
+		let title = 'Labability v2'
+		if (dir) title = `Labability v2 - ${dir}`
+		else title = 'Labability v2'
+
+		if(modified) title += "*"
+		
+		window.setTitle(title).catch(e => {
+			console.error(e)
+		})
+	}, [dir, modified])
  
 	const [ dimensions ] = useImageSize(selectedFile?.src || '')
 

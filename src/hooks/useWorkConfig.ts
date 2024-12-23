@@ -6,6 +6,7 @@ import { useAtom } from "jotai";
 import { annotationAtom } from "@/utils/atoms";
 import { open } from "@tauri-apps/plugin-dialog";
 import { merge } from "ts-deepmerge";
+import { useInterval } from "usehooks-ts";
 
 const CONFIG_FILE = "labability.workspace"
 
@@ -80,7 +81,9 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 	useEffect(() => {
 		loadConfig(workspacePath)
 			.then(config => {
-				setConfig(config)
+				if(!config) return
+				const { annotations, ...configWithoutAnnotations } = config
+				setConfig({...configWithoutAnnotations})
 				setAnnotations(config?.annotations ?? {})
 			})
 			.catch(console.log)
@@ -128,6 +131,16 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		}): null)
 	}, [setConfig])
 
+	// const [ saveState, setSaveState ] = useState<{
+	// 	savedStamp: number,
+	// 	modified: boolean
+	// }>({
+	// 	savedStamp: Date.now(),
+	// 	modified: false
+	// })
+
+	const [ modified, setModified ] = useState(false)
+
 	const saveWorkspace = useCallback(async () => {
 		if(!workspacePath) return
 		const prevConfig = await loadConfig(workspacePath)
@@ -137,13 +150,35 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		}, prevConfig, config, { annotations }) satisfies WorkspaceReservedContent
 		const configPath = await join(workspacePath, CONFIG_FILE)
 		await writeTextFile(configPath, JSON.stringify(content))
-	}, [workspacePath, annotations, config])
+		setModified(false)
+	}, [workspacePath, annotations, config, loadConfig])
+
+
+
+	const checkModified = useCallback(async () => {
+		if(!workspacePath) return false
+		const prevConfig = await loadConfig(workspacePath)
+		if(!prevConfig && !config) return false
+		return JSON.stringify(prevConfig) !== JSON.stringify(merge.withOptions({
+			mergeArrays: false
+		}, config ?? {}, { annotations }))
+		
+	}, [workspacePath, config, annotations])
+
+	useInterval(() => {
+		checkModified().then(m => {
+			if(m !== modified) {
+				setModified(modified)
+			}
+		})
+	}, workspacePath ? 1000 : null)
 
 	return { 
 		saveWorkspace, 
 		config, 
 		setConfig, 
 		setModel,
-		configDetection
+		configDetection,
+		modified
 	}
 }
