@@ -1,4 +1,5 @@
 pub mod modelcmd;
+pub mod decryptcmd;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -7,7 +8,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![modelcmd::inference_yolov8])
+        .invoke_handler(tauri::generate_handler![modelcmd::inference_yolov8, decryptcmd::decrypt_content])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

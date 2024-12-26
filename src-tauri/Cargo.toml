@@ -28,6 +28,7 @@ tauri-plugin-clipboard-manager = "2.0.2"
 image = "0.25.5"
 ndarray = "0.16.1"
 tracing-subscriber = { version = "0.3", features = [ "env-filter", "fmt" ] }
+aes-gcm = "0.10.3"
 
 [dependencies.ort]
 version = "=2.0.0-rc.9"

@@ -1,12 +1,14 @@
 import { LabelColor, WorkspaceConfig } from "@/hooks/useWorkConfig"
 // import Input from "@/components/common/input"
-import { BiFolderOpen } from "react-icons/bi"
+import { BiFolderOpen, BiKey } from "react-icons/bi"
 
 type ConfigPaneProps = {
     config: WorkspaceConfig | null
     setConfig: (config: WorkspaceConfig) => void
     setModel: () => void
     elemWidth: number
+    pickKeystore?: () => void
+    keystore?: string
 }
 
 // const LabelFieldsConfig = (props: {
@@ -62,7 +64,9 @@ export default function ConfigPane(props: ConfigPaneProps) {
         config, 
         setConfig,
         elemWidth,
-        setModel
+        setModel,
+        keystore,
+        pickKeystore
     } = props
 
     if(!config) return (
@@ -121,6 +125,26 @@ export default function ConfigPane(props: ConfigPaneProps) {
                         onClick={setModel}
                     >
                         Load YOLOv8 Model
+                    </button>
+                </div>
+                <div 
+                    className="flex flex-col justify-center items-center border-b border-zinc-300 p-2"
+                >
+                    <h1 className="mb-1 font-extralight text-sm self-start">Decryption</h1>
+                    <h1 className="italic font-light my-3 flex justify-center items-center">
+                        <BiKey size={20} className="inline-block mr-1" />
+                        {
+                        keystore?.split('/')?.pop()?.split('\\').pop() 
+                            ?? 'No Key Loaded'
+                        }
+                    </h1>
+                    <button
+                        className="border-amber-500 text-amber-500 
+                        border-2 hover:border-amber-600 hover:text-amber-600
+                        font-light p-2 rounded-md text-xs"
+                        onClick={pickKeystore}
+                    >
+                        Load keystore
                     </button>
                 </div>
                 {/* <div className="flex flex-col justify-between items-center">

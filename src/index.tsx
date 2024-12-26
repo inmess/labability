@@ -12,7 +12,7 @@ import useWorkConfig from "@/hooks/useWorkConfig";
 import { FileEntry } from "@/types/basetype";
 import { annotationAtom } from "@/utils/atoms";
 import { getVersion } from "@tauri-apps/api/app";
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
@@ -30,6 +30,7 @@ import { VscFiles } from "react-icons/vsc";
 import { useImageSize } from "react-image-size";
 import { toast, ToastContainer } from "react-toastify";
 import { useEventListener } from "usehooks-ts";
+import useDecryption from "./hooks/useDecryption";
 
 const TOOLBAR_MAX_WIDTH = 500
 const TOOLBAR_MIN_WIDTH = 200
@@ -80,6 +81,28 @@ export default function App() {
 	} = useWorkConfig({
 		workspacePath: dir
 	})
+
+	const {
+		pickKeystore,
+		keystore,
+		decryptContent,
+		decImages,
+	} = useDecryption()
+
+	const [ decrypting, setDecrypting ] = useState(false)
+
+	useEffect(() => {
+		if(!selectedFile) return
+		if(decImages[selectedFile.name]) return
+
+		setDecrypting(() => true)
+		decryptContent(selectedFile.path)
+			.then(() => setDecrypting(() => false))
+	}, [ selectedFile, decImages, decryptContent ])
+
+	// const decImgEntries = useMemo(() => {
+	// 	conver
+	// }, [])
 
 	useEffect(() => {
 		const window = getCurrentWindow()
@@ -150,6 +173,14 @@ export default function App() {
 
 		setDetecting(() => true)
 
+		const invoke_params = keystore ? {
+			model: config.detection.loadedModel,
+			imagePath: decImages[selectedFile.name].path
+		} : {
+			model: config.detection.loadedModel,
+			imagePath: selectedFile.path
+		}
+
 		const res : {
 			bbox: {
 				x1: number,
@@ -159,10 +190,7 @@ export default function App() {
 			},
 			class: number,
 			prob: number
-		}[] = await invoke('inference_yolov8', {
-			model: config?.detection.loadedModel,
-			imagePath: selectedFile?.path
-		})
+		}[] = await invoke('inference_yolov8', invoke_params)
 
 		const currentMaxId = boxes.reduce((acc, box) => box.boxId > acc ? box.boxId : acc, 0)
 
@@ -189,7 +217,7 @@ export default function App() {
 		})
 		console.log(res);
 		setDetecting(() => false)
-	}, [selectedFile, config, boxes])
+	}, [selectedFile, config, boxes, keystore, decImages, decImages])
 
 	const onDeleteBox = useCallback((boxId: number) => {
 		if(!selectedFile) return
@@ -273,6 +301,8 @@ export default function App() {
 				config={config}
 				setConfig={setConfig}
 				setModel={setModel}
+				keystore={keystore ?? undefined}
+				pickKeystore={pickKeystore}
 			/>
 		),
 		'detect': () => (
@@ -351,6 +381,15 @@ export default function App() {
 			<h1 className="text-white">Detecting...</h1>
 		</div>
 		}
+		{ 
+		decrypting 
+		&& <div 
+			className="absolute top-0 left-0 w-screen h-screen 
+			bg-gray-500/70 bg-opacity-50 flex justify-center items-center z-50"
+		>
+			<h1 className="text-white">Decrypting...</h1>
+		</div>
+		}
 		<SideBar
 			actions={siderActions}
 			indicators={[
@@ -426,9 +465,13 @@ export default function App() {
 				</button>
 			</>}
 			{
-				selectedFile && <Annotator
+				!decrypting && selectedFile && decImages[selectedFile.name] && <Annotator
 					ref={annotatorRef}
-					image={selectedFile} 
+					image={keystore? {
+						src: convertFileSrc(decImages[selectedFile.name].path),
+						name: selectedFile.name,
+						path: decImages[selectedFile.name].path
+					} : selectedFile} 
 					containerRef={annotatorContainerRef}
 					mode={mode}
 					imageInfo={{
