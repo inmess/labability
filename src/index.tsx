@@ -9,7 +9,7 @@ import {
 }from "@/components/tool-views";
 import useImgDir from "@/hooks/useImgDir";
 import useWorkConfig from "@/hooks/useWorkConfig";
-import { FileEntry } from "@/types/basetype";
+import { FileEntry, ImageBoundingBox } from "@/types/basetype";
 import { annotationAtom } from "@/utils/atoms";
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
@@ -230,6 +230,13 @@ export default function App() {
 		}
 	})
 
+	const onBoxClick = useCallback((box: ImageBoundingBox) => {
+		if(!annotatorRef.current) console.log('annotator not ready');
+		
+		annotatorRef.current?.zoomToBox(box)
+		
+	}, [ annotatorRef ])
+
 	const toolBarViews = {
 		'file-explorer': (state: AnnotatorState) => (
 			<FileExplorer 
@@ -238,11 +245,7 @@ export default function App() {
 				onChangeSelection={fe => setSelectedFile(fe)}
 				elemWidth={toolBarWidth}
 				boxes={boxes}
-				onBoxClick={box => {
-					if(!annotatorRef.current) console.log('annotator not ready');
-					
-					annotatorRef.current?.zoomToBox(box)
-				}}
+				onBoxClick={onBoxClick}
 				onBoxLabelEdit={(boxId, value) => {
 					if(!selectedFile) return
 					const next = boxes.map(b => b.boxId === boxId ? {
@@ -282,6 +285,8 @@ export default function App() {
 				configDetection={configDetection}
 				onDetect={inference}
 				onSetLoadedModel={setModel}
+				boxes={boxes}
+				onBoxClick={onBoxClick}
 			/>
 		)
 	}

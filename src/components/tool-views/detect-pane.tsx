@@ -1,5 +1,6 @@
+import { ImageBoundingBox } from "@/types/basetype";
 import { confirm } from "@tauri-apps/plugin-dialog";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { AiOutlineAim } from "react-icons/ai";
 import { BiFolderOpen } from "react-icons/bi";
 import { MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
@@ -18,6 +19,9 @@ interface DetectPaneProps {
         probThreshold: number,
         loadedModel: string | null
     }
+
+    boxes?: ImageBoundingBox[]
+    onBoxClick?: (box: ImageBoundingBox) => void
 }
 
 export default function DetectPane(props: DetectPaneProps) {
@@ -26,7 +30,10 @@ export default function DetectPane(props: DetectPaneProps) {
         onDetect,
         onSetLoadedModel,
         configDetection,
-        detectionConfig
+        detectionConfig,
+
+        boxes,
+        onBoxClick,
     } = props;
 
     const onDetectClick = useCallback(async () => {
@@ -38,6 +45,8 @@ export default function DetectPane(props: DetectPaneProps) {
         if(!agree) return;
         onDetect(detectionConfig?.probThreshold)
     }, [detectionConfig, onDetect])
+
+    const [ boxListHeight, setBoxListHeight ] = useState(200)
 
     if (!detectionConfig) return (
         <div className="h-full  flex flex-col justify-center items-center" style={{width: elemWidth}}>
@@ -119,6 +128,38 @@ export default function DetectPane(props: DetectPaneProps) {
             }
             <h1 className="text-black font-extralight">Default Agree</h1>
         </button>
+        <div className="w-full">
+            
+            <h1
+                onClick={() => setBoxListHeight(h => h === 0 ? 200 : 0)}
+                className="text-sm font-extralight w-full pl-2 mb-2 text-white bg-amber-500 hover:cursor-pointer "
+            >
+                BOUNDING-BOXES
+            </h1>
+        </div>
+        <div 
+            className="w-full flex flex-col overflow-hidden transition-all"
+            style={{height: boxListHeight}}
+        >
+            <div className="flex flex-col overflow-y-scroll overflow-hidden w-full ">
+            {
+                boxes?.map((box, index) => 
+                    <div 
+                        className="flex flex-row justify-start items-center text-xs w-full"
+                        key={index}
+                    >
+                        <button 
+                            className="flex flex-1 flex-row justify-between items-center 
+                            h-full hover:bg-zinc-200 overflow-hidden pl-2  py-1"
+                            onClick={() => onBoxClick && onBoxClick(box)}
+                        >
+                            <h1 className="w-full text-left truncate">{box.label || `box_${box.boxId}`}</h1>
+                        </button>
+                    </div>
+                )
+            }
+            </div>
+        </div>
     </div>
     )
 }
