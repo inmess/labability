@@ -1,9 +1,10 @@
 import { FileEntry, ImageBoundingBox } from "@/types/basetype"
 import { annotationAtom } from "@/utils/atoms"
 import { useAtom } from "jotai"
-import { useEffect, useRef, useState } from "react"
-import { BsTrash } from "react-icons/bs"
-import { useEventListener } from "usehooks-ts"
+import { useRef, useState } from "react"
+import Modal from "../common/modal"
+import { WorkspaceConfig } from "@/hooks/useWorkConfig"
+import { SearchInput } from "../common/search-input"
 
 type FileExplorerProps = {
     onChangeSelection: (path: FileEntry) => void
@@ -13,7 +14,9 @@ type FileExplorerProps = {
     boxes?: ImageBoundingBox[]
     onBoxClick?: (box: ImageBoundingBox) => void
     onBoxDelete?: (boxId: number) => void
-    onBoxLabelEdit?: (boxId: number, value: string) => void
+    onBoxClassEdit?: (boxId: number, classId: number) => void
+    workspaceConfig?: WorkspaceConfig
+
 }
 
 export default function FileExplorer(props: FileExplorerProps) {
@@ -25,7 +28,8 @@ export default function FileExplorer(props: FileExplorerProps) {
         boxes,
         onBoxClick,
         onBoxDelete,
-        onBoxLabelEdit,
+        onBoxClassEdit,
+        workspaceConfig
     } = props
 
     const [ annotations ] = useAtom(annotationAtom)
@@ -33,6 +37,8 @@ export default function FileExplorer(props: FileExplorerProps) {
     const [ boxListHeight, setBoxListHeight ] = useState(200)
 
     const [ editingBoxId, setEditingBoxId ] = useState<number | null>(null)
+
+    const classListWithId = workspaceConfig?.classList.map((c, idx) => ({...c, id: idx})) ?? []
 
     return (
     <div 
@@ -97,20 +103,51 @@ export default function FileExplorer(props: FileExplorerProps) {
                         key={index}
                         editing={editingBoxId === box.boxId}
                         onBoxClick={() => onBoxClick && onBoxClick(box)}
-                        onSave={val => {
-                            onBoxLabelEdit && onBoxLabelEdit(box.boxId, val)
-                            setEditingBoxId(null)
-                        }}
+                        classLabel={classListWithId.find(c => c.id === box.class)?.name}
                         onBoxDoubleClick={box => setEditingBoxId(box.boxId)}
-                        onDeleteBox={(boxId) => {
-                            onBoxDelete && onBoxDelete(boxId)
-                            setEditingBoxId(null)
-                        }}
                     />
                 )
             }
             </div>
         </div>
+        <Modal
+            isOpen={editingBoxId !== null}
+            onClose={() => setEditingBoxId(null)}
+            title="Edit Box"
+            width="40%"
+            height="30%"
+        >
+            <div className="p-4 h-full w-full flex flex-col justify-center items-center">
+                <div className="flex flex-row justify-start items-center">
+                    <h1 className="text-sm font-light">Box Class</h1>
+                    <SearchInput 
+                        placeholder="Search Class"
+                        items={classListWithId}
+                        itemComponent={({ item }) => (
+                            <div className="flex flex-row justify-between items-center w-full hover:bg-gray-200 px-2 py-1">
+                                <h1 style={{color: item.color}}>Class ID {item.id}</h1>
+                                <h1>{item.name}</h1>
+                            </div>
+                        )}
+                        filterKeys={['name', '#index']}
+                        resultKey="name"
+                        initialValue={classListWithId.find(c => c.id === boxes?.find(b => b.boxId === editingBoxId)?.class)?.name}
+                        onResultClick={cls => {
+                            onBoxClassEdit && onBoxClassEdit(editingBoxId!, cls.id)
+                            // setEditingBoxId(null)
+                        }}
+                        emptyMessage={<h1>No Class Found</h1>}
+                        className="w-1/3 mx-3 border-"
+                    />
+                </div>
+                <button className="bg-red-500 text-white p-2 rounded-md mt-2" onClick={() => {
+                    editingBoxId && onBoxDelete && onBoxDelete(editingBoxId)
+                    setEditingBoxId(null)
+                }}>
+                    Delete Box
+                </button>
+            </div>
+        </Modal>
     </div>
     )
 }
@@ -120,74 +157,37 @@ const BoxEntry = ({
     onBoxClick,
     onBoxDoubleClick,
     editing,
-    onDeleteBox,
-    onSave,
+    classLabel
+    // onDeleteBox,
+    // onSave,
 }: {
     box: ImageBoundingBox
     onBoxClick: (box: ImageBoundingBox) => void
     onBoxDoubleClick: (box: ImageBoundingBox) => void
-    onSave?: (value: string) => void
+    // onSave?: (value: string) => void
     editing?: boolean 
     onDeleteBox?: (boxId: number) => void
-    
+    classLabel?: string
 }) => {
 
     const inputRef = useRef<HTMLInputElement>(null)
 
-    const [ value, setValue] = useState(box.label ?? '')
-
-    useEventListener('keypress', e => {
-        if(e.key === 'enter' && editing) {
-            onSave && onSave(value)
-        }
-    })
-
-    useEffect(() => {
-        if(!editing) setValue(box.label ?? '')
-    }, [editing])
+    // const class_name = 
 
     return (
-        <div 
-            className="flex flex-row justify-start items-center text-xs
-                         w-full"
-        >
-            { !editing &&
-                <>
-                <button 
-                    className="flex flex-1 flex-row justify-between items-center 
-                    h-full hover:bg-zinc-200 overflow-hidden pl-2  py-1"
-                    onClick={() => !editing && onBoxClick(box)}
-                    onDoubleClick={() => {
-                        if(editing) return null
-                        onBoxDoubleClick(box)
-                        inputRef.current?.focus()
-                    }}
-                >
-                    <h1 className="w-full text-left truncate">{box.label || `box_${box.boxId}`}</h1>
-                </button>
-                </>
-            }
-            { editing &&
-            <>
-                <form onSubmit={() => onSave && onSave(value)}>
-                    <input 
-                        ref={inputRef}
-                        className="w-full bg-transparent focus:ring-0 focus:outline-none border-b
-                        border-amber-500 py-1 pl-2"
-                        value={value}
-                        onChange={e => setValue(e.target.value)}
-                    />
-
-                    
-                </form>
-                <button 
-                    className="w-8 flex justify-center items-center hover:bg-zinc-200 h-full"
-                    onClick={() => onDeleteBox && onDeleteBox(box.boxId)}
-                >
-                    <BsTrash size={16} />
-                </button>
-            </>
-            }
+        <div className="flex flex-row justify-start items-center text-xs w-full">
+            <button 
+                className="flex flex-1 flex-row justify-between items-center 
+                h-full hover:bg-zinc-200 overflow-hidden pl-2  py-1"
+                onClick={() => !editing && onBoxClick(box)}
+                onDoubleClick={() => {
+                    if(editing) return null
+                    onBoxDoubleClick(box)
+                    inputRef.current?.focus()
+                }}
+            >
+                <h1 className="w-full text-left truncate">{classLabel?? 'class_' + box.class}_{box.boxId}</h1>
+            </button>
         </div>
     )
 }

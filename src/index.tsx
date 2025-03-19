@@ -76,6 +76,7 @@ export default function App() {
 		setConfig,
 		setModel,
 		configDetection,
+		setClassList,
 		modified
 	} = useWorkConfig({
 		workspacePath: dir
@@ -174,7 +175,8 @@ export default function App() {
 			width: detection.bbox.x2 - detection.bbox.x1,
 			height: detection.bbox.y2 - detection.bbox.y1,
 			label: `Dtc${detection.class}_${idx}_${(detection.prob * 100).toFixed(0)}`,
-			boxId: currentMaxId + idx + 1
+			boxId: currentMaxId + idx + 1,
+			class: detection.class
 		}))
 
 		setAnnotations({
@@ -237,6 +239,23 @@ export default function App() {
 		
 	}, [ annotatorRef ])
 
+
+	const [ activated, setActivated ] = useState<keyof typeof toolBarViews | null>(null)
+
+	const onToolBarAction = useCallback((action: keyof typeof toolBarViews) => {
+		if(activated === action) return setActivated(null)
+		setActivated(action)
+	}, [activated])
+
+
+	if (!config && dir) {
+		return (
+			<div>
+				<h1>Loading...</h1>
+			</div>
+		)
+	}
+
 	const toolBarViews = {
 		'file-explorer': (state: AnnotatorState) => (
 			<FileExplorer 
@@ -246,12 +265,16 @@ export default function App() {
 				elemWidth={toolBarWidth}
 				boxes={boxes}
 				onBoxClick={onBoxClick}
-				onBoxLabelEdit={(boxId, value) => {
+				onBoxClassEdit={(boxId, value) => {
 					if(!selectedFile) return
+					console.log('Setting Box id ', boxId, 'to class id ', value);
+					
 					const next = boxes.map(b => b.boxId === boxId ? {
 						...b,
-						label: value
+						class: value
 					} : b)
+					console.log('Next Boxes', next);
+					
 					setAnnotations({
 						...annotations,
 						[selectedFile.name]: {
@@ -261,6 +284,7 @@ export default function App() {
 					})
 				}}
 				onBoxDelete={onDeleteBox}
+				workspaceConfig={config ?? undefined}
 			/>
 		),
 		'image-info': () => (
@@ -276,6 +300,7 @@ export default function App() {
 				config={config}
 				setConfig={setConfig}
 				setModel={setModel}
+				setClassList={setClassList}
 			/>
 		),
 		'detect': () => (
@@ -290,13 +315,6 @@ export default function App() {
 			/>
 		)
 	}
-
-	const [ activated, setActivated ] = useState<keyof typeof toolBarViews | null>(null)
-
-	const onToolBarAction = useCallback((action: keyof typeof toolBarViews) => {
-		if(activated === action) return setActivated(null)
-		setActivated(action)
-	}, [activated])
 
 	const siderActions = [
 		{
@@ -336,6 +354,7 @@ export default function App() {
 			icon: () => <BiSave size={24} />
 		}
 	]
+
 
 	return (
 	<main 
@@ -439,7 +458,8 @@ export default function App() {
 					imageInfo={{
 						width, height
 					}}
-					boxOptions={config?.boxOptions}
+					workspaceConfig={config!}
+					// boxOptions={config?.boxOptions}
 				/>
 			}
 		</div>

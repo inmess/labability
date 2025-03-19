@@ -30,9 +30,13 @@ export type WorkspaceConfig = {
 		defaultAgree: boolean,
 		loadedModel: string | null,
 	},
-	boxOptions: {
-		color: LabelColor,
-	}
+	// boxOptions: {
+	// 	color: LabelColor,
+	// },
+	classList: {
+		name: string,
+		color: string,
+	}[]
 }
 
 type WorkspaceReservedContent = {
@@ -46,10 +50,14 @@ const defaultConfig: WorkspaceReservedContent = {
 		defaultAgree: false,
 		loadedModel: null
 	},
-	boxOptions: {
+	// boxOptions: {
+	// 	color: LabelColor.AMBER
+	// },
+	annotations: {},
+	classList: [{
+		name: 'class_0',
 		color: LabelColor.AMBER
-	},
-	annotations: {}
+	}]
 }
 
 type WorkConfigOptions = {
@@ -131,13 +139,12 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		}): null)
 	}, [setConfig])
 
-	// const [ saveState, setSaveState ] = useState<{
-	// 	savedStamp: number,
-	// 	modified: boolean
-	// }>({
-	// 	savedStamp: Date.now(),
-	// 	modified: false
-	// })
+	const setClassList = useCallback((classList: { name: string, color: string }[]) => {
+		setConfig(prev => prev ? ({
+			...prev,
+			classList
+		}): null)
+	}, [setConfig])
 
 	const [ modified, setModified ] = useState(false)
 
@@ -179,6 +186,7 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		setConfig, 
 		setModel,
 		configDetection,
-		modified
+		modified,
+		setClassList
 	}
 }

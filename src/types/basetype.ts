@@ -1,6 +1,7 @@
 export type ImageBoundingBox = {
     boxId: number;
     label?: string;
+    class: number;
     left: number;
     top: number;
     width: number;
