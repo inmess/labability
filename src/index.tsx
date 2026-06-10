@@ -9,6 +9,7 @@ import {
 }from "@/components/tool-views";
 import useImgDir from "@/hooks/useImgDir";
 import useWorkConfig from "@/hooks/useWorkConfig";
+import { useI18n } from "@/i18n";
 import { FileEntry, ImageBoundingBox } from "@/types/basetype";
 import { annotationAtom } from "@/utils/atoms";
 import { getVersion } from "@tauri-apps/api/app";
@@ -48,6 +49,7 @@ type AnnotatorState = {
 }
 
 export default function App() {
+	const { language, setLanguage, texts } = useI18n()
 
 	const [ version, setVersion ] = useState('')
 
@@ -84,16 +86,16 @@ export default function App() {
 
 	useEffect(() => {
 		const window = getCurrentWindow()
-		let title = 'Labability v2'
-		if (dir) title = `Labability v2 - ${dir}`
-		else title = 'Labability v2'
+		let title = texts.appTitle
+		if (dir) title = `${texts.appTitle} - ${dir}`
+		else title = texts.appTitle
 
 		if(modified) title += "*"
 		
 		window.setTitle(title).catch(e => {
 			console.error(e)
 		})
-	}, [dir, modified])
+	}, [dir, modified, texts.appTitle])
  
 	const [ dimensions ] = useImageSize(selectedFile?.src || '')
 
@@ -251,7 +253,7 @@ export default function App() {
 	if (!config && dir) {
 		return (
 			<div>
-				<h1>Loading...</h1>
+				<h1>{texts.app.loading}</h1>
 			</div>
 		)
 	}
@@ -320,30 +322,34 @@ export default function App() {
 		{
 			onPressAction: () => onToolBarAction('file-explorer'),
 			isActive: activated === 'file-explorer',
+			label: texts.fileExplorer.title,
 			icon: () => <VscFiles size={24} />
 		},
 		{
 			onPressAction: () => onToolBarAction('image-info'),
 			isActive: activated === 'image-info',
+			label: texts.imageInfo.title,
 			icon: () => <GoInfo size={25} />
 		},
 		{
 			onPressAction: () => onToolBarAction('config'),
 			isActive: activated === 'config',
+			label: texts.config.title,
 			icon: () => <GoGear size={24} />
 		},
 		{
 			onPressAction: () => onToolBarAction('detect'),
 			isActive: activated === 'detect',
+			label: texts.detect.title,
 			icon: () => <AiOutlineAim size={24} />
 		},
 		{
 			onPressAction: async () => {
 				if(!dir) return
 				toast.promise(saveWorkspace, {
-					pending: 'Saving Workspace...',
-					success: 'Workspace Saved',
-					error: 'Failed to Save Workspace',
+					pending: texts.app.savingWorkspace,
+					success: texts.app.workspaceSaved,
+					error: texts.app.failedToSaveWorkspace,
 				}, {
 					position: 'top-center',
 					autoClose: 2000,
@@ -351,6 +357,7 @@ export default function App() {
 				})
 			},
 			isActive: false,
+			label: texts.app.saveWorkspace,
 			icon: () => <BiSave size={24} />
 		}
 	]
@@ -372,7 +379,7 @@ export default function App() {
 			className="absolute top-0 left-0 w-screen h-screen 
 			bg-gray-500/70 bg-opacity-50 flex justify-center items-center z-50"
 		>
-			<h1 className="text-white">Detecting...</h1>
+			<h1 className="text-white">{texts.app.detecting}</h1>
 		</div>
 		}
 		<SideBar
@@ -384,23 +391,35 @@ export default function App() {
 							className="flex flex-col justify-center items-center
 							hover:bg-gray-200 hover:cursor-pointer w-full py-2"
 							onClick={async () => {
-								const agree = await ask("Are you sure you want to close the current workspace?", {
-									title: 'Close Workspace',
+								const agree = await ask(texts.app.closeWorkspaceConfirmMessage, {
+									title: texts.app.closeWorkspaceConfirmTitle,
 									kind: 'warning'
 								})
 								if(!agree) return null
 								closeImgDir()
 							}}
 						>
-							<h1 className="font-normal text-xs">Close</h1>
-							<h1 className="font-normal text-xs">Folder</h1>
+							<h1 className="font-normal text-xs">{texts.app.close}</h1>
+							<h1 className="font-normal text-xs">{texts.app.folder}</h1>
 						</div>
 					): <></>
 				},
 				{
 					element: () => (
+						<button
+							type="button"
+							onClick={() => setLanguage(language === 'en' ? 'zh-CN' : 'en')}
+							className="flex flex-col items-center justify-center hover:bg-gray-200 w-full py-2"
+						>
+							<h1 className="font-normal text-[10px]">{texts.app.language}</h1>
+							<h1 className="italic font-normal text-xs">{texts.app.toggleLanguage}</h1>
+						</button>
+					)
+				},
+				{
+					element: () => (
 						<div className="flex flex-col">
-							<h1 className="font-normal text-xs">Ver.</h1>
+							<h1 className="font-normal text-xs">{texts.app.version}</h1>
 							<h1 className="italic font-normal text-xs">{version}</h1>
 						</div>
 					)
@@ -438,7 +457,7 @@ export default function App() {
 				onFitScreen={() => annotatorRef.current?.resizeContent()}
 			/>
 			{ !dir && <>
-				<h1>Welcome to Labability v2</h1>
+				<h1>{texts.app.welcome}</h1>
 				<button 
 					onClick={async () => {
 						await openImgDir()
@@ -446,7 +465,7 @@ export default function App() {
 					}}
 					className="text-blue-500 font-bold hover:underline"
 				>
-					Open Image Directory
+					{texts.app.openImageDirectory}
 				</button>
 			</>}
 			{

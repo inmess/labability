@@ -4,6 +4,7 @@ import { useAtom } from "jotai"
 import { useRef, useState } from "react"
 import Modal from "../common/modal"
 import { WorkspaceConfig } from "@/hooks/useWorkConfig"
+import { useI18n } from "@/i18n"
 import { SearchInput } from "../common/search-input"
 
 type FileExplorerProps = {
@@ -32,6 +33,8 @@ export default function FileExplorer(props: FileExplorerProps) {
         workspaceConfig
     } = props
 
+    const { texts } = useI18n()
+
     const [ annotations ] = useAtom(annotationAtom)
 
     const [ boxListHeight, setBoxListHeight ] = useState(200)
@@ -45,7 +48,7 @@ export default function FileExplorer(props: FileExplorerProps) {
         className={`flex-1 h-full flex flex-col justify-start items-start px-1`}
         style={{ width: elemWidth }}
     >
-        <h1 className="text-sm font-extralight w-full pl-2 mb-2 text-white bg-amber-500">EXPLORER</h1>
+        <h1 className="text-sm font-extralight w-full pl-2 mb-2 text-white bg-amber-500">{texts.fileExplorer.title}</h1>
         <div className="overflow-y-scroll overflow-hidden w-full flex-1">       
             {files.map((file) => {
                 const isSelected = selected?.name === file.name
@@ -78,7 +81,7 @@ export default function FileExplorer(props: FileExplorerProps) {
             })}
             {
             files.length === 0 && <div className="h-full w-full flex flex-col justify-center items-center">
-                <h1 className="italic font-light text-gray-500">No Image Found</h1>
+                <h1 className="italic font-light text-gray-500">{texts.fileExplorer.noImageFound}</h1>
             </div>
             }
         </div>
@@ -88,7 +91,7 @@ export default function FileExplorer(props: FileExplorerProps) {
                 onClick={() => setBoxListHeight(h => h === 0 ? 200 : 0)}
                 className="text-sm font-extralight w-full pl-2 mb-2 text-white bg-amber-500 hover:cursor-pointer "
             >
-                BOUNDING-BOXES
+                {texts.fileExplorer.boundingBoxes}
             </h1>
         </div>
         <div 
@@ -113,15 +116,15 @@ export default function FileExplorer(props: FileExplorerProps) {
         <Modal
             isOpen={editingBoxId !== null}
             onClose={() => setEditingBoxId(null)}
-            title="Edit Box"
+            title={texts.fileExplorer.editBox}
             width="40%"
             height="30%"
         >
             <div className="p-4 h-full w-full flex flex-col justify-center items-center">
                 <div className="flex flex-row justify-start items-center">
-                    <h1 className="text-sm font-light">Box Class</h1>
+                    <h1 className="text-sm font-light">{texts.fileExplorer.boxClass}</h1>
                     <SearchInput 
-                        placeholder="Search Class"
+                        placeholder={texts.fileExplorer.searchClass}
                         items={classListWithId}
                         itemComponent={({ item }) => (
                             <div className="flex flex-row justify-between items-center w-full hover:bg-gray-200 px-2 py-1">
@@ -136,7 +139,7 @@ export default function FileExplorer(props: FileExplorerProps) {
                             onBoxClassEdit && onBoxClassEdit(editingBoxId!, cls.id)
                             // setEditingBoxId(null)
                         }}
-                        emptyMessage={<h1>No Class Found</h1>}
+                        emptyMessage={<h1>{texts.fileExplorer.noClassFound}</h1>}
                         className="w-1/3 mx-3 border-"
                     />
                 </div>
@@ -144,7 +147,7 @@ export default function FileExplorer(props: FileExplorerProps) {
                     editingBoxId && onBoxDelete && onBoxDelete(editingBoxId)
                     setEditingBoxId(null)
                 }}>
-                    Delete Box
+                    {texts.fileExplorer.deleteBox}
                 </button>
             </div>
         </Modal>

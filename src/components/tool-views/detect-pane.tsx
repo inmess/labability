@@ -1,4 +1,5 @@
 import { ImageBoundingBox } from "@/types/basetype";
+import { useI18n } from "@/i18n";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { useCallback, useState } from "react";
 import { AiOutlineAim } from "react-icons/ai";
@@ -36,21 +37,23 @@ export default function DetectPane(props: DetectPaneProps) {
         onBoxClick,
     } = props;
 
+    const { texts } = useI18n()
+
     const onDetectClick = useCallback(async () => {
         if(detectionConfig?.defaultAgree) return onDetect(detectionConfig.probThreshold)
         const agree = await confirm(
-            'Are you sure to detect? It may takes a while.', 
-            { title: 'Confirm Detection' }
+            texts.detect.confirmMessage,
+            { title: texts.detect.confirmTitle }
         )
         if(!agree) return;
         onDetect(detectionConfig?.probThreshold)
-    }, [detectionConfig, onDetect])
+	}, [detectionConfig, onDetect, texts.detect.confirmMessage, texts.detect.confirmTitle])
 
     const [ boxListHeight, setBoxListHeight ] = useState(200)
 
     if (!detectionConfig) return (
         <div className="h-full  flex flex-col justify-center items-center" style={{width: elemWidth}}>
-            <h1 className="italic font-light text-gray-500">No Detection Config</h1>
+            <h1 className="italic font-light text-gray-500">{texts.detect.noDetectionConfig}</h1>
         </div>
     )
 
@@ -60,17 +63,17 @@ export default function DetectPane(props: DetectPaneProps) {
         bg-zinc-100 overflow-hidden p-1" 
         style={{width: elemWidth}}
     >
-        <h1 className="text-sm font-extralight w-full pl-2 mb-2 text-white bg-amber-500">DETECT</h1>
+        <h1 className="text-sm font-extralight w-full pl-2 mb-2 text-white bg-amber-500">{texts.detect.title}</h1>
         <div className="h-full w-full flex flex-col justify-center items-center">
             <div 
                 className="flex flex-col w-full justify-center items-center border-b border-zinc-300 p-2"
             >
-                <h1 className="mb-1 font-extralight text-sm self-start">Object Detecion Model</h1>
+                <h1 className="mb-1 font-extralight text-sm self-start">{texts.detect.modelSection}</h1>
                 <h1 className="italic font-light my-3 flex justify-center items-center">
                     <BiFolderOpen size={20} className="inline-block mr-1" />
                     {
                     detectionConfig.loadedModel?.split('/')?.pop()?.split('\\').pop() 
-                        ?? 'No Model Loaded'
+                        ?? texts.detect.noModelLoaded
                     }
                 </h1>
                 <button
@@ -78,10 +81,10 @@ export default function DetectPane(props: DetectPaneProps) {
                     font-light p-2 rounded-md text-xs px-4"
                     onClick={onSetLoadedModel}
                 >
-                    Load YOLOv8 Model
+                    {texts.detect.loadModel}
                 </button>
             </div>
-            <h1 className="font-extralight text-sm mt-5">Threshold</h1>
+            <h1 className="font-extralight text-sm mt-5">{texts.detect.threshold}</h1>
             <input 
                 type='range' 
                 min={0} 
@@ -108,7 +111,7 @@ export default function DetectPane(props: DetectPaneProps) {
                     onClick={onDetectClick}
                 >
                     <AiOutlineAim className="mr-2" size={24} />
-                    Detect
+                    {texts.detect.detect}
                 </button>
             </div>
         </div>
@@ -126,7 +129,7 @@ export default function DetectPane(props: DetectPaneProps) {
                 ? <MdCheckBox className="text-amber-500" size={18} />
                 : <MdCheckBoxOutlineBlank className="text-amber-500" size={18} />
             }
-            <h1 className="text-black font-extralight">Default Agree</h1>
+            <h1 className="text-black font-extralight">{texts.detect.defaultAgree}</h1>
         </button>
         <div className="w-full">
             
@@ -134,7 +137,7 @@ export default function DetectPane(props: DetectPaneProps) {
                 onClick={() => setBoxListHeight(h => h === 0 ? 200 : 0)}
                 className="text-sm font-extralight w-full pl-2 mb-2 text-white bg-amber-500 hover:cursor-pointer "
             >
-                BOUNDING-BOXES
+                {texts.detect.boundingBoxes}
             </h1>
         </div>
         <div 

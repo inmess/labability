@@ -1,5 +1,6 @@
 import { WorkspaceConfig } from "@/hooks/useWorkConfig"
 // import Input from "@/components/common/input"
+import { useI18n } from "@/i18n"
 import { BiFolderOpen } from "react-icons/bi"
 // import { TbTrash } from "react-icons/tb"
 import Modal from "../common/modal"
@@ -23,6 +24,8 @@ export default function ConfigPane(props: ConfigPaneProps) {
         setClassList
     } = props
 
+    const { texts } = useI18n()
+
     const [ classModalOpened, setClassModalOpened ] = useState(-1)
 
     const [ tempClassConfig, setTempClassConfig ] = useState({
@@ -33,14 +36,14 @@ export default function ConfigPane(props: ConfigPaneProps) {
 
     if(!config) return (
         <div className="h-full w-full flex flex-col justify-center items-center">
-            <h1 className="italic font-light text-gray-500">No Workspace Loaded</h1>
+            <h1 className="italic font-light text-gray-500">{texts.config.noWorkspaceLoaded}</h1>
         </div>
     )
 
     return (
         <div className="h-full flex flex-col bg-zinc-100 overflow-y-scroll" style={{width: elemWidth}}>
             <div className="p-4 border-b border-zinc-300">
-                <h1 className="text-lg font-extralight">Configuration</h1>
+                <h1 className="text-lg font-extralight">{texts.config.title}</h1>
             </div>
             <div className="p-2 pt-0 flex flex-col gap-2">
                 {/* <div className="flex flex-col justify-start items-start border-b border-zinc-300 py-2">
@@ -72,12 +75,12 @@ export default function ConfigPane(props: ConfigPaneProps) {
                 <div 
                     className="flex flex-col justify-center items-center border-b border-zinc-300 p-2"
                 >
-                    <h1 className="mb-1 font-extralight text-sm self-start">Object Detecion Model</h1>
+                    <h1 className="mb-1 font-extralight text-sm self-start">{texts.config.modelSection}</h1>
                     <h1 className="italic font-light my-3 flex justify-center items-center">
                         <BiFolderOpen size={20} className="inline-block mr-1" />
                         {
                         config.detection.loadedModel?.split('/')?.pop()?.split('\\').pop() 
-                            ?? 'No Model Loaded'
+                            ?? texts.config.noModelLoaded
                         }
                     </h1>
                     <button
@@ -86,13 +89,13 @@ export default function ConfigPane(props: ConfigPaneProps) {
                         font-light p-2 rounded-md text-xs"
                         onClick={setModel}
                     >
-                        Load YOLOv8 Model
+                        {texts.config.loadModel}
                     </button>
                 </div>
                 <div 
                     className="flex flex-col justify-center items-center border-b border-zinc-300 p-2"
                 >
-                    <h1 className="mb-1 font-extralight text-sm self-start">Object Detecion Model</h1>
+                    <h1 className="mb-1 font-extralight text-sm self-start">{texts.config.classesSection}</h1>
                     {
                         config.classList.map((cls, idx) => (
                             <div 
@@ -112,7 +115,7 @@ export default function ConfigPane(props: ConfigPaneProps) {
                                     <div className={
                                         ` bg-opacity-50 rounded-md inline-block px-1 mr-1`
                                     }>
-                                        <h1 style={{ color: cls.color }} className="text-xs text-opacity-50 font-semibold">ID {idx}</h1>
+                                        <h1 style={{ color: cls.color }} className="text-xs text-opacity-50 font-semibold">{texts.config.classId(idx)}</h1>
                                     </div>
                                     {cls.name}
                                 </h1>
@@ -128,19 +131,19 @@ export default function ConfigPane(props: ConfigPaneProps) {
                             color: '#000000'
                         }])}
                     >
-                        Add Class
+                        {texts.config.addClass}
                     </button>
                 </div>
             </div>
             <Modal 
                 isOpen={classModalOpened > -1}
                 onClose={() => setClassModalOpened(-1)}
-                title="Class Configuration"
+                title={texts.config.classConfiguration}
                 width="500px"
                 height="450px"
             >
                 <div className="flex flex-col justify-center items-center gap-2">
-                    <h1 className="font-light text-sm">Class Name</h1>
+                    <h1 className="font-light text-sm">{texts.config.className}</h1>
                     <input 
                         type="text" 
                         value={tempClassConfig.name}
@@ -150,7 +153,7 @@ export default function ConfigPane(props: ConfigPaneProps) {
                         })}
                         className="border border-zinc-300 p-1 rounded-md w-1/2"
                     />
-                    <h1 className="font-light text-sm">Class Stroke Color
+                    <h1 className="font-light text-sm">{texts.config.classStrokeColor}
                         
                     </h1>
                     {/* <HexColorPicker 
@@ -187,7 +190,7 @@ export default function ConfigPane(props: ConfigPaneProps) {
                             setClassModalOpened(-1)
                         }}
                     >
-                        Save
+                        {texts.config.save}
                     </button>
                 </div>
             </Modal>

@@ -5,7 +5,8 @@ type SideBarProps = {
     actions: {
         onPressAction: () => void,
         icon: () => ReactNode,
-        isActive?: boolean
+        isActive?: boolean,
+        label?: string
     }[],
     indicators: {
         element: () => ReactNode,
@@ -24,6 +25,8 @@ export default function SideBar(props: SideBarProps) {
                     <button
                         key={index}
                         onClick={action.onPressAction}
+                        title={action.label}
+                        aria-label={action.label}
                         className={`w-12 h-12 flex justify-center items-center border-4 border-transparent
                             ${action.isActive ? 'border-l-amber-500' : 'hover:border-l-amber-300'}`}
                     >
