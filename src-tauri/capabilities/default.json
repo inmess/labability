@@ -8,14 +8,6 @@
   "permissions": [
     "core:default",
     "shell:allow-open",
-    {
-      "identifier": "fs:scope",
-      "allow": [
-        {
-          "path": "**/*"
-        }
-      ]
-    },
     "fs:default",
     "fs:allow-read",
     "fs:allow-write",
