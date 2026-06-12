@@ -46,6 +46,11 @@
     ],
     "macOS": {
       "signingIdentity": "-"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "offlineInstaller"
+      }
     }
   }
 }
