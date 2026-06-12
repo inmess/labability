@@ -13,6 +13,7 @@ type TranslationDict = {
         failedToSaveWorkspace: string;
         closeWorkspaceConfirmTitle: string;
         closeWorkspaceConfirmMessage: string;
+        closeWorkspaceUnsavedConfirmMessage: string;
         close: string;
         folder: string;
         version: string;
@@ -41,15 +42,16 @@ type TranslationDict = {
     config: {
         noWorkspaceLoaded: string;
         title: string;
-        modelSection: string;
         classesSection: string;
-        noModelLoaded: string;
-        loadModel: string;
         addClass: string;
         classConfiguration: string;
         className: string;
         classStrokeColor: string;
         save: string;
+        deleteClass: string;
+        deleteClassConfirmTitle: string;
+        deleteClassConfirmMessage: string;
+        keepOneClassHint: string;
         classId: (id: number) => string;
     };
     detect: {
@@ -79,6 +81,7 @@ const translations: Record<Language, TranslationDict> = {
             failedToSaveWorkspace: "Failed to save workspace",
             closeWorkspaceConfirmTitle: "Close Workspace",
             closeWorkspaceConfirmMessage: "Are you sure you want to close the current workspace?",
+            closeWorkspaceUnsavedConfirmMessage: "The current workspace has unsaved changes. Are you sure you want to close it?",
             close: "Close",
             folder: "Folder",
             version: "Ver.",
@@ -107,15 +110,16 @@ const translations: Record<Language, TranslationDict> = {
         config: {
             noWorkspaceLoaded: "No workspace loaded",
             title: "Configuration",
-            modelSection: "Object Detection Model",
             classesSection: "Classes",
-            noModelLoaded: "No model loaded",
-            loadModel: "Load YOLOv8 Model",
             addClass: "Add Class",
             classConfiguration: "Class Configuration",
             className: "Class Name",
             classStrokeColor: "Class Stroke Color",
             save: "Save",
+            deleteClass: "Delete Class",
+            deleteClassConfirmTitle: "Delete Class",
+            deleteClassConfirmMessage: "Deleting this class will remove all annotated boxes that belong to it. Continue?",
+            keepOneClassHint: "At least one class must remain.",
             classId: (id: number) => `ID ${id}`,
         },
         detect: {
@@ -143,6 +147,7 @@ const translations: Record<Language, TranslationDict> = {
             failedToSaveWorkspace: "工作区保存失败",
             closeWorkspaceConfirmTitle: "关闭工作区",
             closeWorkspaceConfirmMessage: "确定要关闭当前工作区吗？",
+            closeWorkspaceUnsavedConfirmMessage: "当前工作区未保存，是否确认关闭当前工作区？",
             close: "关闭",
             folder: "工作区",
             version: "版本",
@@ -171,15 +176,16 @@ const translations: Record<Language, TranslationDict> = {
         config: {
             noWorkspaceLoaded: "未加载工作区",
             title: "配置",
-            modelSection: "目标检测模型",
             classesSection: "类别",
-            noModelLoaded: "未加载模型",
-            loadModel: "加载 YOLOv8 模型",
             addClass: "添加类别",
             classConfiguration: "类别配置",
             className: "类别名称",
             classStrokeColor: "类别描边颜色",
             save: "保存",
+            deleteClass: "删除类别",
+            deleteClassConfirmTitle: "删除类别",
+            deleteClassConfirmMessage: "删除该类别后，所有已标注为该类别的框都会一并删除。确定继续吗？",
+            keepOneClassHint: "至少需要保留一个类别。",
             classId: (id: number) => `ID ${id}`,
         },
         detect: {

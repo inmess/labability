@@ -1,12 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useAtom } from "jotai";
-import { atomWithStorage } from "jotai/utils";
+import { detectionConfigAtom } from "@/utils/atoms";
 import { useState, useCallback } from "react";
-
-export const modelAtom = atomWithStorage(
-	"model_path_loaded",
-	""
-)
 
 type InferenceResult = {
     bbox: {
@@ -20,24 +15,24 @@ type InferenceResult = {
 }[]
 
 export function useInference() {
-	const [ modelPath ] = useAtom(modelAtom)
+	const [ detectionConfig ] = useAtom(detectionConfigAtom)
 
 	const [ detecting, setDetecting ] = useState(false)
 
 	const detect = useCallback(async (path: string) => {
         setDetecting(() => true);
-        console.log('ready for inference, model: ', modelPath);
+        console.log('ready for inference, model: ', detectionConfig.loadedModel);
         
         const res: InferenceResult = await invoke('inference_yolov8', 
             {
                 inFile: path,
-                modelFile: modelPath
+                modelFile: detectionConfig.loadedModel
             }
         );
         setDetecting(() => false);
         
         return res;
-    }, [modelPath])
+    }, [detectionConfig.loadedModel])
 
 	return { detecting, detect }
 }

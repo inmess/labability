@@ -69,6 +69,9 @@ pub fn inference_yolov8(model: String, image_path: String) -> Result<Vec<Detecti
         return Err("Invalid input w&h".to_string());
     }
 
+    // get output dims to verify the output format, end2end or nms required
+    // let output_dims = session.outputs[0];
+
     if cfg!(debug_assertions) {
         println!("Batch size: {}", input_dims[0]);
         println!("Number of channel: {}", input_dims[1]);

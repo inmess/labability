@@ -189,6 +189,9 @@ export default function BoundingBox(props: BoundingBoxProps) {
                 boxSizing: 'content-box', // 确保边框不影响内容尺寸
             }}
             id={id}
+            onPointerDown={e => {
+                e.stopPropagation()
+            }}
         >
             {/* 标签显示 */}
             {box.label && (
@@ -200,6 +203,9 @@ export default function BoundingBox(props: BoundingBoxProps) {
                         fontSize: Math.max(labelHeight - 8, 12),
                         right: -dynamicBorderWidth,
                         backgroundColor: boxOptions.color,
+                    }}
+                    onPointerDown={e => {
+                        e.stopPropagation()
                     }}
                     onClick={() => onActivateEditMode?.(true)}
                 >

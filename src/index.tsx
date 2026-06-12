@@ -78,6 +78,7 @@ export default function App() {
 		setConfig,
 		setModel,
 		configDetection,
+		detectionConfig,
 		setClassList,
 		modified
 	} = useWorkConfig({
@@ -147,7 +148,7 @@ export default function App() {
 
 		if (!config) return console.log('no config')
 
-		if (!config.detection) return console.log('no model file found')
+		if (!detectionConfig.loadedModel) return console.log('no model file found')
 		
 		if (!selectedFile) return console.log('no selected file')
 
@@ -163,7 +164,7 @@ export default function App() {
 			class: number,
 			prob: number
 		}[] = await invoke('inference_yolov8', {
-			model: config?.detection.loadedModel,
+			model: detectionConfig.loadedModel,
 			imagePath: selectedFile?.path
 		})
 
@@ -193,7 +194,7 @@ export default function App() {
 		})
 		console.log(res);
 		setDetecting(() => false)
-	}, [selectedFile, config, boxes])
+	}, [annotations, boxes, config, detectionConfig.loadedModel, selectedFile, setAnnotations])
 
 	const onDeleteBox = useCallback((boxId: number) => {
 		if(!selectedFile) return
@@ -206,6 +207,28 @@ export default function App() {
 			}
 		})
 	}, [selectedFile, boxes])
+
+	const onDeleteClass = useCallback((classId: number) => {
+		if (!config || config.classList.length <= 1) return
+
+		setClassList(config.classList.filter((_, idx) => idx !== classId))
+		setAnnotations(prev => {
+			return Object.fromEntries(
+				Object.entries(prev).map(([imageName, annotation]) => ([
+					imageName,
+					{
+						...annotation,
+						boxes: annotation.boxes
+							.filter(box => box.class !== classId)
+							.map(box => ({
+								...box,
+								class: box.class > classId ? box.class - 1 : box.class,
+							}))
+					}
+				]))
+			)
+		})
+	}, [config, setAnnotations, setClassList])
 
 	useEventListener('mousemove', e => {
 		if (!draggingToolBar) return
@@ -301,14 +324,14 @@ export default function App() {
 				elemWidth={toolBarWidth}
 				config={config}
 				setConfig={setConfig}
-				setModel={setModel}
 				setClassList={setClassList}
+				onDeleteClass={onDeleteClass}
 			/>
 		),
 		'detect': () => (
 			<DetectPane
 				elemWidth={toolBarWidth}
-				detectionConfig={config?.detection}
+				detectionConfig={detectionConfig}
 				configDetection={configDetection}
 				onDetect={inference}
 				onSetLoadedModel={setModel}
@@ -391,10 +414,15 @@ export default function App() {
 							className="flex flex-col justify-center items-center
 							hover:bg-gray-200 hover:cursor-pointer w-full py-2"
 							onClick={async () => {
-								const agree = await ask(texts.app.closeWorkspaceConfirmMessage, {
+								const agree = await ask(
+									modified
+										? texts.app.closeWorkspaceUnsavedConfirmMessage
+										: texts.app.closeWorkspaceConfirmMessage,
+									{
 									title: texts.app.closeWorkspaceConfirmTitle,
 									kind: 'warning'
-								})
+									}
+								)
 								if(!agree) return null
 								closeImgDir()
 							}}

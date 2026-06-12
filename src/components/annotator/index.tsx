@@ -5,6 +5,7 @@ import { useAtom } from "jotai"
 import { clamp, throttle, cloneDeep } from "lodash-es"
 import {
     forwardRef,
+    type SyntheticEvent,
     PointerEventHandler,
     useCallback,
     useEffect,
@@ -13,7 +14,6 @@ import {
     useRef,
     useState
 } from "react"
-import { useImageSize } from "react-image-size"
 import { ReactZoomPanPinchRef, TransformComponent, TransformWrapper } from "react-zoom-pan-pinch"
 import { useEventListener } from "usehooks-ts"
 import BoundingBox from "./bounding-box"
@@ -38,6 +38,9 @@ type AnnotatorProps = {
 
 export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
 
+    const MIN_BOX_SIZE = 5
+    const CREATE_BOX_DRAG_THRESHOLD = 4
+
     const {
         image,
         containerRef,
@@ -47,10 +50,11 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
         }
     } = props
 
-    const [dimensions] = useImageSize(image.src)
+    const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
+    const [imageLoaded, setImageLoaded] = useState(false)
 
-    const width = dimensions?.width || 1
-    const height = dimensions?.height || 1
+    const width = imageSize.width || 1
+    const height = imageSize.height || 1
 
     const transfromRef = useRef<ReactZoomPanPinchRef>(null)
 
@@ -100,20 +104,32 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
     // }, [annotations, image.name, width, height]);
 
     useEffect(() => {
-        if (!annotations[image.name]) {
-            setAnnotations({
-                ...annotations,
+        if (!imageLoaded) return
+
+        setAnnotations(prev => {
+            const current = prev[image.name]
+
+            if (
+                current &&
+                current.metadata?.width === width &&
+                current.metadata?.height === height
+            ) {
+                return prev
+            }
+
+            return {
+                ...prev,
                 [image.name]: {
-                    boxes: [],
+                    boxes: current?.boxes ?? [],
                     metadata: {
                         width,
                         height
                     },
-                    labels: {}
+                    labels: current?.labels ?? {}
                 }
-            })
-        }
-    }, [annotations, image, width, height])
+            }
+        })
+    }, [height, image.name, imageLoaded, setAnnotations, width])
 
     const currAnno: ImageAnnotation = useMemo(() => annotations[image.name] ?? {
         boxes: [],
@@ -125,6 +141,7 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
     }, [annotations, image, width, height])
 
     const [creatingBox, setCreatingBox] = useState(false)
+    const [canvasPointerDown, setCanvasPointerDown] = useState(false)
     const [selectedBox, setSelectedBox] = useState<{
         id: number,
         movepoint: BBoxMovePoint
@@ -140,6 +157,37 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
         boxId: -1,
         class: boxOptions.classId
     })
+
+    useEffect(() => {
+        setImageLoaded(false)
+        setImageSize({ width: 0, height: 0 })
+        setCreatingBox(false)
+        setSelectedBox(null)
+        setBoxEditing(-1)
+        setPointerPos({ x: 0, y: 0 })
+        setTempBoxAnchor({ x: 0, y: 0 })
+        setTempBox({
+            left: 0,
+            top: 0,
+            width: 0,
+            height: 0,
+            boxId: -1,
+            class: boxOptions.classId
+        })
+    }, [image.src, boxOptions.classId])
+
+    const getCanvasPointerPosition = useCallback((clientX: number, clientY: number) => {
+        if (!containerRef.current) return null
+
+        const rect = containerRef.current.getBoundingClientRect() || { left: 0, top: 0 }
+        const px = (clientX - rect.left - canvasX) / scale
+        const py = (clientY - rect.top - canvasY) / scale
+
+        return {
+            x: clamp(px, 0, width),
+            y: clamp(py, 0, height)
+        }
+    }, [canvasX, canvasY, containerRef, height, scale, width])
 
     const bboxCreating: (ImageBoundingBox | null) = useMemo(() => {
         return creatingBox ? {
@@ -200,17 +248,21 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
     }, [historyIndex, history, setAnnotations]);
 
     const onMovePointer: PointerEventHandler<HTMLDivElement> = useCallback(throttle(e => {
+        const nextPointerPos = getCanvasPointerPosition(e.clientX, e.clientY)
+        if (!nextPointerPos) return
 
-        if (!containerRef.current) return
+        const clampX = nextPointerPos.x
+        const clampY = nextPointerPos.y
+        setPointerPos(nextPointerPos)
 
-        const rect = containerRef.current.getBoundingClientRect() || { left: 0, top: 0 };
+        if (canvasPointerDown && !creatingBox) {
+            const deltaX = Math.abs(clampX - tempBoxAnchor.x)
+            const deltaY = Math.abs(clampY - tempBoxAnchor.y)
 
-        const px = (e.clientX - rect.left - canvasX) / scale
-        const py = (e.clientY - rect.top - canvasY) / scale
-
-        const clampX = clamp(px, 0, width)
-        const clampY = clamp(py, 0, height)
-        setPointerPos({ x: clampX, y: clampY })
+            if (deltaX >= CREATE_BOX_DRAG_THRESHOLD || deltaY >= CREATE_BOX_DRAG_THRESHOLD) {
+                setCreatingBox(true)
+            }
+        }
 
         if (!selectedBox) return
 
@@ -222,7 +274,6 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
 
         // 创建可修改副本
         const newBox = { ...originalBox }
-        const MIN_SIZE = 5
 
         switch (selectedBox.movepoint) {
             case BBoxMovePoint.TOP_LEFT: {
@@ -233,11 +284,11 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                 const bottom = originalBox.top + originalBox.height
 
                 // 处理左>右或上>下的交叉情况
-                if (left > right - MIN_SIZE) {
-                    left = right - MIN_SIZE
+                if (left > right - MIN_BOX_SIZE) {
+                    left = right - MIN_BOX_SIZE
                 }
-                if (top > bottom - MIN_SIZE) {
-                    top = bottom - MIN_SIZE
+                if (top > bottom - MIN_BOX_SIZE) {
+                    top = bottom - MIN_BOX_SIZE
                 }
 
                 newBox.width = right - left
@@ -254,9 +305,9 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                 const bottom = originalBox.top + originalBox.height
 
                 // 右边界不能小于左边界+最小宽度
-                right = Math.max(right, left + MIN_SIZE)
+                right = Math.max(right, left + MIN_BOX_SIZE)
                 // 上边界不能超过下边界-最小高度
-                top = Math.min(top, bottom - MIN_SIZE)
+                top = Math.min(top, bottom - MIN_BOX_SIZE)
 
                 newBox.width = right - left
                 newBox.height = bottom - top
@@ -270,8 +321,8 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                 const top = originalBox.top
                 let bottom = clampY
 
-                left = Math.min(left, right - MIN_SIZE)
-                bottom = Math.max(bottom, top + MIN_SIZE)
+                left = Math.min(left, right - MIN_BOX_SIZE)
+                bottom = Math.max(bottom, top + MIN_BOX_SIZE)
 
                 newBox.width = right - left
                 newBox.height = bottom - top
@@ -285,8 +336,8 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                 let right = clampX
                 let bottom = clampY
 
-                right = Math.max(right, left + MIN_SIZE)
-                bottom = Math.max(bottom, top + MIN_SIZE)
+                right = Math.max(right, left + MIN_BOX_SIZE)
+                bottom = Math.max(bottom, top + MIN_BOX_SIZE)
 
                 newBox.width = right - left
                 newBox.height = bottom - top
@@ -296,7 +347,7 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
             case BBoxMovePoint.LEFT: {
                 let left = clampX
                 const right = originalBox.left + originalBox.width
-                left = Math.min(left, right - MIN_SIZE)
+                left = Math.min(left, right - MIN_BOX_SIZE)
                 newBox.width = right - left
                 newBox.left = left
                 break
@@ -305,7 +356,7 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
             case BBoxMovePoint.RIGHT: {
                 const left = originalBox.left
                 let right = clampX
-                right = Math.max(right, left + MIN_SIZE)
+                right = Math.max(right, left + MIN_BOX_SIZE)
                 newBox.width = right - left
                 break
             }
@@ -313,7 +364,7 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
             case BBoxMovePoint.TOP: {
                 let top = clampY
                 const bottom = originalBox.top + originalBox.height
-                top = Math.min(top, bottom - MIN_SIZE)
+                top = Math.min(top, bottom - MIN_BOX_SIZE)
                 newBox.height = bottom - top
                 newBox.top = top
                 break
@@ -322,7 +373,7 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
             case BBoxMovePoint.BOT: {
                 const top = originalBox.top
                 let bottom = clampY
-                bottom = Math.max(bottom, top + MIN_SIZE)
+                bottom = Math.max(bottom, top + MIN_BOX_SIZE)
                 newBox.height = bottom - top
                 break
             }
@@ -336,18 +387,18 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
             }
         }
 
-        newBox.left = clamp(newBox.left, 0, width - MIN_SIZE)
-        newBox.top = clamp(newBox.top, 0, height - MIN_SIZE)
-        newBox.width = clamp(newBox.width, MIN_SIZE, width - newBox.left)
-        newBox.height = clamp(newBox.height, MIN_SIZE, height - newBox.top)
+        newBox.left = clamp(newBox.left, 0, width - MIN_BOX_SIZE)
+        newBox.top = clamp(newBox.top, 0, height - MIN_BOX_SIZE)
+        newBox.width = clamp(newBox.width, MIN_BOX_SIZE, width - newBox.left)
+        newBox.height = clamp(newBox.height, MIN_BOX_SIZE, height - newBox.top)
 
         handleBBoxChangeOnce(selectedBox.id, newBox)
     }, 16), [
+        canvasPointerDown,
         currAnno.boxes,
-        canvasX,
-        canvasY,
+        creatingBox,
+        getCanvasPointerPosition,
         handleBBoxChangeOnce,
-        scale,
         selectedBox,
         tempBox,
         tempBoxAnchor,
@@ -368,6 +419,7 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
     }, [annotations, currAnno])
 
     const onTransformContentPointerUp = useCallback(() => {
+        setCanvasPointerDown(false)
 
         // if (selectedBox) {
             
@@ -385,26 +437,38 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
             setSelectedBox(null);  // 清除选中状态
             // return;
         }
-        if (mode !== 'adjust' || !creatingBox) return;
+        if (mode !== 'adjust' || !creatingBox) {
+            setCreatingBox(false)
+            return
+        }
+
+        const nextWidth = Math.abs(pointerPos.x - tempBoxAnchor.x)
+        const nextHeight = Math.abs(pointerPos.y - tempBoxAnchor.y)
+
+        setCreatingBox(false)
+
+        if (nextWidth < MIN_BOX_SIZE || nextHeight < MIN_BOX_SIZE) return
 
         const maxId = currAnno.boxes.reduce((acc, box) => box.boxId > acc ? box.boxId : acc, 0)
 
         addBox({
             left: Math.min(tempBoxAnchor.x, pointerPos.x),
             top: Math.min(tempBoxAnchor.y, pointerPos.y),
-            width: Math.abs(pointerPos.x - tempBoxAnchor.x),
-            height: Math.abs(pointerPos.y - tempBoxAnchor.y),
+            width: nextWidth,
+            height: nextHeight,
             boxId: maxId + 1,
             label: boxOptions.name,
             class: boxOptions.classId
         })
-        setCreatingBox(false)
-    }, [addBox, creatingBox, pointerPos, tempBoxAnchor, mode, currAnno.boxes, selectedBox, boxOptions])
+    }, [addBox, boxOptions, creatingBox, currAnno.boxes, mode, pointerPos, selectedBox, tempBoxAnchor])
 
     const resizeContent = useCallback(() => {
+        if (!imageLoaded || width <= 0 || height <= 0) return
 
         const containerHeight = containerRef.current?.offsetHeight || height
         const containerWidth = containerRef.current?.offsetWidth || width
+
+        if (containerHeight <= 0 || containerWidth <= 0) return
 
         const diffRatioY = containerHeight / height;
         const diffRatioX = containerWidth / width;
@@ -416,7 +480,7 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
 
         transfromRef.current?.setTransform(x, y, ratio)
 
-    }, [height, width])
+    }, [containerRef, height, imageLoaded, width])
 
     const zoomToBox = useCallback((box: ImageBoundingBox) => {
         // const box = currAnno.boxes.find(b => b.boxId === id)
@@ -445,11 +509,24 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
      * reszie the canvas every time the image changes
      */
     useEffect(() => {
-        // setCanvasLoading(true)
+        if (!imageLoaded) return
 
-        // transfromRef.current?.resetTransform()
-        resizeContent()
-    }, [image, resizeContent])
+        const rafId = window.requestAnimationFrame(() => {
+            resizeContent()
+        })
+
+        return () => window.cancelAnimationFrame(rafId)
+    }, [imageLoaded, resizeContent])
+
+    const onImageLoad = useCallback((event: SyntheticEvent<HTMLImageElement>) => {
+        const { naturalWidth, naturalHeight } = event.currentTarget
+
+        setImageSize({
+            width: naturalWidth,
+            height: naturalHeight
+        })
+        setImageLoaded(true)
+    }, [])
 
     useEventListener('keyup', e => {
         if (e.key === 'Alt') {
@@ -518,10 +595,24 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                         height: '100%',
                     }}
                     contentProps={{
-                        onPointerDown: _ => {
+                        onPointerDown: e => {
+                            const nextPointerPos = getCanvasPointerPosition(e.clientX, e.clientY)
+                            if (!nextPointerPos) return
+
+                            setPointerPos(nextPointerPos)
+
+                            if (selectedBox || boxEditing > -1) {
+                                setSelectedBox(null)
+                                setBoxEditing(-1)
+                                setCreatingBox(false)
+                                setCanvasPointerDown(false)
+                                return
+                            }
+
                             if (mode !== 'adjust') return
-                            setCreatingBox(true)
-                            setTempBoxAnchor(pointerPos)
+
+                            setTempBoxAnchor(nextPointerPos)
+                            setCanvasPointerDown(true)
                         },
                         onPointerUp: onTransformContentPointerUp,
                         onDoubleClick: () => {
@@ -589,8 +680,9 @@ export default forwardRef<AnnotatorRef, AnnotatorProps>((props, ref) => {
                     <img
                         src={image.src}
                         alt={image.name}
-                        height={dimensions?.height}
-                        width={dimensions?.width}
+                        height={imageLoaded ? imageSize.height : undefined}
+                        width={imageLoaded ? imageSize.width : undefined}
+                        onLoad={onImageLoad}
                     />
                 </TransformComponent>
             </TransformWrapper>

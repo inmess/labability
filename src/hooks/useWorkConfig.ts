@@ -1,14 +1,18 @@
 import { ImageAnnotation } from "@/types/basetype"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { readTextFile, exists, writeTextFile } from '@tauri-apps/plugin-fs';
 import { join } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
-import { annotationAtom } from "@/utils/atoms";
+import {
+	annotationAtom,
+	defaultDetectionConfig,
+	detectionConfigAtom,
+	type DetectionConfig,
+} from "@/utils/atoms";
 import { open } from "@tauri-apps/plugin-dialog";
-import { merge } from "ts-deepmerge";
-import { useInterval } from "usehooks-ts";
 
 const CONFIG_FILE = "labability.workspace"
+const AUTO_SAVE_DELAY_MS = 60_000
 
 export enum LabelColor {
 	AMBER = 'rgba(245, 158, 12, 1)',
@@ -25,11 +29,6 @@ export type WorkspaceConfig = {
 		labelTitle: string,
 		labelOptions: string[]
 	}[],
-	detection: {
-		probThreshold: number,
-		defaultAgree: boolean,
-		loadedModel: string | null,
-	},
 	// boxOptions: {
 	// 	color: LabelColor,
 	// },
@@ -43,13 +42,12 @@ type WorkspaceReservedContent = {
 	annotations: { [key: string]: ImageAnnotation }	
 } & WorkspaceConfig
 
+type LegacyWorkspaceReservedContent = WorkspaceReservedContent & {
+	detection?: DetectionConfig
+}
+
 const defaultConfig: WorkspaceReservedContent = {
 	imageLabelOptions: [],
-	detection: {
-		probThreshold: 0.7,
-		defaultAgree: false,
-		loadedModel: null
-	},
 	// boxOptions: {
 	// 	color: LabelColor.AMBER
 	// },
@@ -70,8 +68,9 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 	const [ config, setConfig ] = useState<WorkspaceConfig | null>(null)
 
 	const [ annotations, setAnnotations ] = useAtom(annotationAtom)
+	const [ detectionConfig, setDetectionConfig ] = useAtom(detectionConfigAtom)
 
-	const loadConfig = async (path: string | null): Promise<WorkspaceReservedContent | null> => {
+	const loadConfig = async (path: string | null): Promise<LegacyWorkspaceReservedContent | null> => {
 		if(!path) return null
 		const configPath = await join(path, CONFIG_FILE)
 
@@ -82,20 +81,48 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		} satisfies WorkspaceReservedContent
 
 		const content = await readTextFile(configPath)
-		const config = JSON.parse(content) as WorkspaceReservedContent
+		const config = JSON.parse(content) as LegacyWorkspaceReservedContent
 		return config
 	}
 
+	const isDetectionConfigDefault = useCallback((nextConfig: DetectionConfig) => {
+		return nextConfig.probThreshold === defaultDetectionConfig.probThreshold
+			&& nextConfig.defaultAgree === defaultDetectionConfig.defaultAgree
+			&& nextConfig.loadedModel === defaultDetectionConfig.loadedModel
+	}, [])
+
 	useEffect(() => {
+		if(!workspacePath) {
+			setConfig(null)
+			setAnnotations({})
+			setSavedSnapshot(null)
+			setModified(false)
+			return
+		}
+
 		loadConfig(workspacePath)
 			.then(config => {
 				if(!config) return
-				const { annotations, ...configWithoutAnnotations } = config
+				const { annotations, detection, ...configWithoutAnnotations } = config
+				const workspaceContent = {
+					...configWithoutAnnotations,
+					annotations: annotations ?? {},
+				} satisfies WorkspaceReservedContent
+
 				setConfig({...configWithoutAnnotations})
 				setAnnotations(config?.annotations ?? {})
+				setSavedSnapshot(JSON.stringify(workspaceContent))
+				setModified(false)
+
+				if (detection) {
+					setDetectionConfig(prev => {
+						if (!isDetectionConfigDefault(prev)) return prev
+						return detection
+					})
+				}
 			})
 			.catch(console.log)
-	}, [workspacePath])
+	}, [isDetectionConfigDefault, setAnnotations, setDetectionConfig, workspacePath])
 
 	const setModel = useCallback(async () => {
 		const path = await open({
@@ -106,15 +133,12 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 				extensions: ['onnx']
 			}]
 		})
-		if(path === null) return
-		setConfig(prev => prev ? {
+		if(typeof path !== 'string') return
+		setDetectionConfig(prev => ({
 			...prev,
-			detection: {
-				...prev.detection,
-				loadedModel: path,
-			},
-		}: null)
-	}, [config, setConfig])
+			loadedModel: path,
+		}))
+	}, [setDetectionConfig])
 
 	const configDetection = useCallback(async ({
 		probThreshold,
@@ -125,19 +149,12 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		defaultAgree?: boolean,
 		loadedModel?: string
 	}) => {
-		setConfig(prev => prev ? ({
-			...prev,
-			detection: {
-				loadedModel : loadedModel || prev.detection.loadedModel,
-				probThreshold: probThreshold === undefined 
-					? prev.detection.probThreshold
-					: probThreshold,
-				defaultAgree: defaultAgree === undefined
-					? prev.detection.defaultAgree
-					: defaultAgree
-			}
-		}): null)
-	}, [setConfig])
+		setDetectionConfig(prev => ({
+			loadedModel: loadedModel === undefined ? prev.loadedModel : loadedModel,
+			probThreshold: probThreshold === undefined ? prev.probThreshold : probThreshold,
+			defaultAgree: defaultAgree === undefined ? prev.defaultAgree : defaultAgree,
+		}))
+	}, [setDetectionConfig])
 
 	const setClassList = useCallback((classList: { name: string, color: string }[]) => {
 		setConfig(prev => prev ? ({
@@ -147,38 +164,61 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 	}, [setConfig])
 
 	const [ modified, setModified ] = useState(false)
+	const [ savedSnapshot, setSavedSnapshot ] = useState<string | null>(null)
+
+	const buildWorkspaceContent = useCallback((nextConfig: WorkspaceConfig | null) => {
+		if(!nextConfig) return null
+
+		return {
+			...nextConfig,
+			annotations,
+		} satisfies WorkspaceReservedContent
+	}, [annotations])
+
+	const currentWorkspaceContent = useMemo(() => {
+		return buildWorkspaceContent(config)
+	}, [buildWorkspaceContent, config])
+
+	const currentWorkspaceSnapshot = useMemo(() => {
+		if(!currentWorkspaceContent) return null
+		return JSON.stringify(currentWorkspaceContent)
+	}, [currentWorkspaceContent])
 
 	const saveWorkspace = useCallback(async () => {
-		if(!workspacePath) return
-		const prevConfig = await loadConfig(workspacePath)
-		if(!prevConfig || !config) return
-		const content = merge.withOptions({
-			mergeArrays: false
-		}, prevConfig, config, { annotations }) satisfies WorkspaceReservedContent
+		if(!workspacePath || !currentWorkspaceSnapshot) return
 		const configPath = await join(workspacePath, CONFIG_FILE)
-		await writeTextFile(configPath, JSON.stringify(content))
+		await writeTextFile(configPath, currentWorkspaceSnapshot)
+		setSavedSnapshot(currentWorkspaceSnapshot)
 		setModified(false)
-	}, [workspacePath, annotations, config, loadConfig])
+	}, [currentWorkspaceSnapshot, workspacePath])
 
+	useEffect(() => {
+		if(!workspacePath || !currentWorkspaceSnapshot || savedSnapshot === null) {
+			setModified(false)
+			return
+		}
 
+		setModified(currentWorkspaceSnapshot !== savedSnapshot)
+	}, [currentWorkspaceSnapshot, savedSnapshot, workspacePath])
 
-	const checkModified = useCallback(async () => {
-		if(!workspacePath) return false
-		const prevConfig = await loadConfig(workspacePath)
-		if(!prevConfig && !config) return false
-		return JSON.stringify(prevConfig) !== JSON.stringify(merge.withOptions({
-			mergeArrays: false
-		}, config ?? {}, { annotations }))
-		
-	}, [workspacePath, config, annotations])
+	useEffect(() => {
+		if(
+			!workspacePath
+			|| !modified
+			|| !currentWorkspaceSnapshot
+			|| currentWorkspaceSnapshot === savedSnapshot
+		) {
+			return
+		}
 
-	useInterval(() => {
-		checkModified().then(m => {
-			if(m !== modified) {
-				setModified(modified)
-			}
-		})
-	}, workspacePath ? 1000 : null)
+		const timerId = window.setTimeout(() => {
+			saveWorkspace().catch(console.error)
+		}, AUTO_SAVE_DELAY_MS)
+
+		return () => {
+			window.clearTimeout(timerId)
+		}
+	}, [currentWorkspaceSnapshot, modified, saveWorkspace, savedSnapshot, workspacePath])
 
 	return { 
 		saveWorkspace, 
@@ -186,6 +226,7 @@ export default function useWorkConfig(options: WorkConfigOptions) {
 		setConfig, 
 		setModel,
 		configDetection,
+		detectionConfig,
 		modified,
 		setClassList
 	}
